@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2025/12/14
+// Ver.1.0 : 2025/12/20
 
 #target illustrator
 #targetengine "main"
@@ -50,99 +50,99 @@ var aspectRatio = imageWidth / imageHeight;
 // クラス CImageViewDLg
 //-----------------------------------
 
-    // コンストラクタ (ここから) 
-    function CImageViewDLg( DlgName, InstanceName ) { 
+// コンストラクタ (ここから) 
+function CImageViewDLg( DlgName, InstanceName ) { 
        
-        // 初期化
-        const TheMainObj = this;
-        CPaletteWindow.call( TheMainObj, true );      // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-        TheMainObj.InitDialog( DlgName );             // イニシャライザ
-        const TheMainDlg = TheMainObj.GetDlg();       // ダイアログへのオブジェクトを得る
+    // 初期化
+    const TheObj = this;
+    CPaletteWindow.call( TheObj, true );        // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
+    TheObj.InitDialog( DlgName );               // イニシャライザ
+    TheObj.InitInstance( InstanceName );        // インスタンス初期化
+    const TheDialog = TheObj.GetDlg();          // ダイアログへのオブジェクトを得る
 
-        // 画像読み込み
-        const uiImage = ScriptUI.newImage(imageFile);
+    // 画像読み込み
+    const uiImage = ScriptUI.newImage(imageFile);
 
-        // パラメータ変更
-        TheMainDlg.opacity = 1.0;                                         // 不透明度 
-        TheMainDlg.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
-
-
-        // onResizing サイズ変更中に呼び出される
-        TheMainDlg.onResizing = function() {
-            var currentBounds = this.bounds;
-            var newWidth      = currentBounds.width;
-            var newHeight     = currentBounds.height;
-            var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
-
-            if (currentRatio > aspectRatio) {
-                // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
-                // 新しい幅 = 新しい高さ * 目標比率
-                newWidth = newHeight * aspectRatio;
-            } else {
-                // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
-                // 新しい高さ = 新しい幅 / 目標比率
-                newHeight = newWidth / aspectRatio;
-            }
-
-            // 元の位置を維持しつつ、新しいサイズを適用
-            TheMainDlg.bounds = [
-                currentBounds.left, 
-                currentBounds.top, 
-                currentBounds.left + newWidth, 
-                currentBounds.top + newHeight
-            ];
-
-            canvas.size = [ newWidth, newHeight ]; // ビューアのサイズを変更
-            TheMainDlg.preferredSize = [ newWidth, newHeight ]; 
-        };
+    // パラメータ変更
+    TheDialog.opacity = 1.0;                                         // 不透明度 
+    TheDialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
 
 
-        // カスタム・カンバスを追加
-        var canvas = TheMainDlg.add("customview", undefined, {
-            multiline: false,
-            scrollable: false
-        });
-        canvas.size = [TheMainDlg.preferredSize.width, TheMainDlg.preferredSize .height]; // ビューアの初期サイズ
-        canvas.orientation = "column";
-        canvas.alignment = ["fill", "fill"];
+     // onResizing サイズ変更中に呼び出される
+    TheDialog.onResizing = function() {
+        var currentBounds = this.bounds;
+        var newWidth      = currentBounds.width;
+        var newHeight     = currentBounds.height;
+        var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
+
+        if (currentRatio > aspectRatio) {
+            // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
+            // 新しい幅 = 新しい高さ * 目標比率
+            newWidth = newHeight * aspectRatio;
+        } else {
+            // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
+            // 新しい高さ = 新しい幅 / 目標比率
+            newHeight = newWidth / aspectRatio;
+        }
+
+        // 元の位置を維持しつつ、新しいサイズを適用
+        TheDialog.bounds = [
+            currentBounds.left, 
+            currentBounds.top, 
+            currentBounds.left + newWidth, 
+            currentBounds.top + newHeight
+        ];
+
+        canvas.size = [ newWidth, newHeight ]; // ビューアのサイズを変更
+        TheDialog.preferredSize = [ newWidth, newHeight ]; 
+    };
+
+
+    // カスタム・カンバスを追加
+    var canvas = TheDialog.add("customview", undefined, {
+        multiline: false,
+        scrollable: false
+    });
+    canvas.size = [TheDialog.preferredSize.width, TheDialog.preferredSize .height]; // ビューアの初期サイズ
+    canvas.orientation = "column";
+    canvas.alignment = ["fill", "fill"];
 
         
-        // カスタム・カンバスのmousedown
-        canvas.addEventListener("mousedown", function(event) {
-            var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
-            // event.button は左クリックで 0、中央で 1、右で 2 を返す
-            //alert(Sz);
-        });
+    // カスタム・カンバスのmousedown
+    canvas.addEventListener("mousedown", function(event) {
+        var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+        // event.button は左クリックで 0、中央で 1、右で 2 を返す
+        //alert(Sz);
+    });
 
 
-        // カスタム・カンバスのonDraw
-        canvas.onDraw = function() {
-            var canv = this;
-            var g = canv.graphics;
+    // カスタム・カンバスのonDraw
+    canvas.onDraw = function() {
+        var canv = this;
+        var g = canv.graphics;
 
-            var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
-            var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
+        var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
+        var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
 
-            if ( uiImage ) {
-                // 画像をビュアーのサイズにリサイズして描画
-                g.drawImage(uiImage, 0, 0, canv.size.width, canv.size.height);
+        if ( uiImage ) {
+            // 画像をビュアーのサイズにリサイズして描画
+            g.drawImage(uiImage, 0, 0, canv.size.width, canv.size.height);
 
-                //g.drawString(TheMainDlg.size[0],  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
-                //g.drawString(canv.size.width,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
-            }
-        };
+            //g.drawString(TheDialog.size[0],  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+            //g.drawString(canv.size.width,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
+        }
+    };
 
-      } // コンストラクタ (ここまで) 
-
-
-    // ・サブクラスのメソッド追加よりも先に、プロトタイプチェーンで継承させること。
-    // ・追加したメソッドが継承元のメソッド名と同じ場合は、上書きになるので注意すること。
-    CImageViewDLg.prototype = CPaletteWindow.prototype;
-
-    // 追加したいソッドをここで定義
+} // コンストラクタ (ここまで) 
 
 
- //インスタンスを生成。なお、CHellowWorldDlgの引数にも、インスタンス名(DlgPaint)を記入のこと！！
+CImageViewDLg.prototype = CPaletteWindow.prototype;  // サブクラスのメソッド追加よりも先に、継承させること
+
+
+// 追加したいソッドをここで定義
+
+
+//インスタンスを生成。なお、CHellowWorldDlgの引数にも、インスタンス名(DlgPaint)を記入のこと！！
 var DlgPaint = new CImageViewDLg( "イメージ・ビューア", "DlgPaint" );
 
 

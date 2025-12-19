@@ -1,5 +1,5 @@
 ﻿
-// Ver.1.0 : 2025/12/14
+// Ver.1.0 : 2025/12/20
 
 
 // アプリケーションのバージョンを取得
@@ -50,6 +50,10 @@ CPaletteWindow.prototype = {
         $.writeln( "ダイアログ[ "+DlgName+" ]を生成");
     },
 
+    InitInstance: function(InstanceName) {
+        this.m_InstanceName = InstanceName;
+    },
+
     GetDlg: function() {
         return ( this.m_Dialog );
     },
@@ -64,6 +68,24 @@ CPaletteWindow.prototype = {
         var Dlg = this.GetDlg();
         Dlg.close();
         $.writeln("ダイアログ閉じた");
+    },
+
+    addEventListener: function( p1, p2 ) {
+        var Dlg = this.GetDlg();
+        return Dlg.addEventListener( p1, p2 );
+    },
+
+    AddPanel: function(Text) {
+        var Dlg = this.GetDlg();
+        var PanelText = Dlg.add( "panel") ;
+        return PanelText;
+    },
+
+    AddRadioButton: function(Text) {
+        var Dlg = this.GetDlg();
+        var RadioButtonText = Dlg.add( "radiobutton") ;
+        RadioButtonText.text = Text;
+        return RadioButtonText;
     },
 
     AddEditText: function(Text) {
@@ -95,10 +117,10 @@ CPaletteWindow.prototype = {
         return ChkBox;
     },
 
-    CallFunc: function( InstanceName, FuncName ) {
+    CallFunc: function( FuncName ) {
         var bt = new BridgeTalk;
         bt.target = BridgeTalk.appSpecifier;
-        bt.body = InstanceName + "." + FuncName + "();";
+        bt.body = this.m_InstanceName + "." + FuncName + "();";
         bt.send();
     }
 } // prototype
