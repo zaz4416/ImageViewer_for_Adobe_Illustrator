@@ -15,7 +15,7 @@ SELF = (function(){
 })();
 
 // 外部のJSXを読み込む
-$.evalFile(SELF.path + "/ZazLib/" + "PaletteWindow.jsx");
+$.evalFile(SELF.parent.path + "/ZazLib/" + "PaletteWindow.jsx");
 
 
 // ファイル選択
