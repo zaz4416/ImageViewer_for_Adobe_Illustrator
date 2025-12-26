@@ -1,0 +1,3 @@
+[submodule "zazlib"]
+	path = zazlib
+	url = https://github.com/zaz4416/ZazLib.git
