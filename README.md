@@ -1,4 +1,4 @@
-# ImageViewer_for_Adobe_Illustrator
+# ImageViewer_for_Adobe_Illustrator_by_Extend_Script.
 
 動作環境
 Adobe社のイラストレータで動作します。
