@@ -424,3 +424,4 @@ FodyWeavers.xsd
 .github/._workflows
 ._README.md
 ._README.md
+.github/workflows/._release.yml
