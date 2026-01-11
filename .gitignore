@@ -422,3 +422,4 @@ FodyWeavers.xsd
 *.msp
 ._.github
 .github/._workflows
+._README.md
