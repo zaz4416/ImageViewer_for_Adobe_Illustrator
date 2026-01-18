@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2025/12/20
+// Ver.1.0 : 2026/01/18
 
 #target illustrator
 #targetengine "main"
@@ -16,6 +16,16 @@ SELF = (function(){
 
 // 外部のJSXを読み込む
 $.evalFile(SELF.path + "/ZazLib/" + "PaletteWindow.jsx");
+
+
+// プロパティ・メソッドをコピーする汎用関数
+function ClassInheritance(subClass, superClass) {
+    for (var prop in superClass.prototype) {
+        if (superClass.prototype.hasOwnProperty(prop)) {
+            subClass.prototype[prop] = superClass.prototype[prop];
+        }
+    }
+}
 
 
 // ファイル選択
@@ -54,14 +64,14 @@ var aspectRatio = imageWidth / imageHeight;
 function CImageViewDLg( DlgName, InstanceName ) { 
        
     // 初期化
-    const TheObj = this;
+    var TheObj = this;
     CPaletteWindow.call( TheObj, true );        // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
     TheObj.InitDialog( DlgName );               // イニシャライザ
     TheObj.InitInstance( InstanceName );        // インスタンス初期化
-    const TheDialog = TheObj.GetDlg();          // ダイアログへのオブジェクトを得る
+    var TheDialog = TheObj.GetDlg();          // ダイアログへのオブジェクトを得る
 
     // 画像読み込み
-    const uiImage = ScriptUI.newImage(imageFile);
+    var uiImage = ScriptUI.newImage(imageFile);
 
     // パラメータ変更
     TheDialog.opacity = 1.0;                                         // 不透明度 
@@ -135,11 +145,11 @@ function CImageViewDLg( DlgName, InstanceName ) {
 
 } // コンストラクタ (ここまで) 
 
+// CHumanのメソッドをコピー
+ClassInheritance(CImageViewDLg, CPaletteWindow);
 
-CImageViewDLg.prototype = CPaletteWindow.prototype;  // サブクラスのメソッド追加よりも先に、継承させること
 
-
-// 追加したいソッドをここで定義
+// ClassInheritanceの後ろで、追加したいメソッドを定義
 
 
 //インスタンスを生成。なお、CHellowWorldDlgの引数にも、インスタンス名(DlgPaint)を記入のこと！！
