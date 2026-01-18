@@ -145,7 +145,7 @@ function CImageViewDLg( DlgName, InstanceName ) {
 
 } // コンストラクタ (ここまで) 
 
-// CHumanのメソッドをコピー
+// メソッドをコピー
 ClassInheritance(CImageViewDLg, CPaletteWindow);
 
 
