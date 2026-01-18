@@ -78,8 +78,13 @@ function CImageViewDLg( DlgName, InstanceName ) {
     TheDialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
 
 
-     // onResizing サイズ変更中に呼び出される
+    // onResizing サイズ変更中に呼び出される
+    var isResizing = false; // 無限ループ防止フラグ
     TheDialog.onResizing = function() {
+
+        if (isResizing) return;
+        isResizing = true;
+
         var currentBounds = this.bounds;
         var newWidth      = currentBounds.width;
         var newHeight     = currentBounds.height;
@@ -105,6 +110,10 @@ function CImageViewDLg( DlgName, InstanceName ) {
 
         canvas.size = [ newWidth, newHeight ]; // ビューアのサイズを変更
         TheDialog.preferredSize = [ newWidth, newHeight ]; 
+
+        // 再描画を促す
+        this.layout.layout(true);
+        isResizing = false;
     };
 
 
