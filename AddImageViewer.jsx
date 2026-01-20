@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/18
+// Ver.1.0 : 2026/01/20
 
 #target illustrator
 #targetengine "main"
@@ -18,21 +18,10 @@ SELF = (function(){
 $.evalFile(SELF.path + "/ZazLib/" + "PaletteWindow.jsx");
 
 
-// プロパティ・メソッドをコピーする汎用関数
-function ClassInheritance(subClass, superClass) {
-    for (var prop in superClass.prototype) {
-        if (superClass.prototype.hasOwnProperty(prop)) {
-            subClass.prototype[prop] = superClass.prototype[prop];
-        }
-    }
-}
-
-
 // ファイル選択
 var imageFile = File.openDialog("Select File");
 var imageWidth;            // 画像の幅
 var imageHeight;           // 画像の高さ
-
 
 // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
 {
@@ -64,11 +53,12 @@ var aspectRatio = imageWidth / imageHeight;
 function CImageViewDLg( DlgName, InstanceName ) { 
        
     // 初期化
-    var TheObj = this;
-    CPaletteWindow.call( TheObj, true );        // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    TheObj.InitDialog( DlgName );               // イニシャライザ
-    TheObj.InitInstance( InstanceName );        // インスタンス初期化
-    var TheDialog = TheObj.GetDlg();          // ダイアログへのオブジェクトを得る
+    CPaletteWindow.call( this, true );        // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
+    this.InitDialog( DlgName );               // イニシャライザ
+
+    CImageViewDLg.TheObj = this;              // クラスインスタンスを指す this を退避( 静的プロパティ )
+
+    var TheDialog = CImageViewDLg.TheObj.GetDlg();          // ダイアログへのオブジェクトを得る
 
     // 画像読み込み
     var uiImage = ScriptUI.newImage(imageFile);
@@ -162,7 +152,7 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);
 
 
 //インスタンスを生成。なお、CHellowWorldDlgの引数にも、インスタンス名(DlgPaint)を記入のこと！！
-var DlgPaint = new CImageViewDLg( "イメージ・ビューア", "DlgPaint" );
+var DlgPaint = new CImageViewDLg( "イメージ・ビューア" );
 
 
 main();
