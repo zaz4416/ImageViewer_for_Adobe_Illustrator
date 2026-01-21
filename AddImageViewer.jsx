@@ -115,11 +115,12 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);
 // ClassInheritanceの後ろで、追加したいメソッドを定義
 CImageViewDLg.prototype.onResizing = function() {
 
-        var Dlg  = CImageViewDLg.TheObj.GetDlg();
-        var Canv = CImageViewDLg.TheObj.canvas;
+        var Obj  = CImageViewDLg.TheObj;
+        var Dlg  = Obj.GetDlg();
+        var Canv = Obj.canvas;
 
-        //if (CImageViewDLg.TheObj.isResizing) return;
-        CImageViewDLg.TheObj.isResizing = true;
+        //if (Obj.isResizing) return;
+        Obj.isResizing = true;
 
         var currentBounds = Dlg.bounds;
         var newWidth      = currentBounds.width;
@@ -141,7 +142,7 @@ CImageViewDLg.prototype.onResizing = function() {
 
         // 再描画を促す
         Canv.layout.layout(true);
-        CImageViewDLg.TheObj.isResizing = false;
+        Obj.isResizing = false;
 }
 
 
