@@ -68,7 +68,7 @@ function CImageViewDLg( DlgName, InstanceName ) {
     TheDialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
 
     // onResizing サイズ変更中に呼び出される
-    var isResizing = false; // 無限ループ防止フラグ
+    this.isResizing = false; // 無限ループ防止フラグ
     TheDialog.onResizing = function() {
         CImageViewDLg.TheObj.onResizing();  // インスタンスメソッドとしての onResizing を実行
     };
@@ -113,15 +113,13 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
-// 静的フラグ
-CImageViewDLg.isResizing = false;
 CImageViewDLg.prototype.onResizing = function() {
 
         var Dlg  = CImageViewDLg.TheObj.GetDlg();
         var Canv = CImageViewDLg.TheObj.canvas;
 
-        //if (CImageViewDLg.isResizing) return;
-        CImageViewDLg.isResizing = true;
+        //if (CImageViewDLg.TheObj.isResizing) return;
+        CImageViewDLg.TheObj.isResizing = true;
 
         var currentBounds = Dlg.bounds;
         var newWidth      = currentBounds.width;
@@ -143,7 +141,7 @@ CImageViewDLg.prototype.onResizing = function() {
 
         // 再描画を促す
         Canv.layout.layout(true);
-        CImageViewDLg.isResizing = false;
+        CImageViewDLg.TheObj.isResizing = false;
 }
 
 
