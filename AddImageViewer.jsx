@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/20
+// Ver.1.0 : 2026/01/21
 
 #target illustrator
 #targetengine "main"
@@ -71,7 +71,12 @@ function CImageViewDLg( DlgName, InstanceName ) {
     // onResizing サイズ変更中に呼び出される
     var isResizing = false; // 無限ループ防止フラグ
     TheDialog.onResizing = function() {
+        
+        // インスタンスメソッドとしての onResizing を実行
+        CImageViewDLg.TheObj.onResizing();
 
+
+/*
         if (isResizing) return;
         isResizing = true;
 
@@ -104,6 +109,7 @@ function CImageViewDLg( DlgName, InstanceName ) {
         // 再描画を促す
         this.layout.layout(true);
         isResizing = false;
+*/
     };
 
 
@@ -115,6 +121,8 @@ function CImageViewDLg( DlgName, InstanceName ) {
     canvas.size = [TheDialog.preferredSize.width, TheDialog.preferredSize .height]; // ビューアの初期サイズ
     canvas.orientation = "column";
     canvas.alignment = ["fill", "fill"];
+
+    CImageViewDLg.canvas = canvas;
 
         
     // カスタム・カンバスのmousedown
@@ -149,6 +157,38 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
+// 静的フラグ
+CImageViewDLg.isResizing = false;
+CImageViewDLg.prototype.onResizing = function() {
+
+        var Dlg  = CImageViewDLg.TheObj.GetDlg();
+        var Canv = CImageViewDLg.canvas;
+
+        //if (CImageViewDLg.isResizing) return;
+        CImageViewDLg.isResizing = true;
+
+        var currentBounds = Dlg.bounds;
+        var newWidth      = currentBounds.width;
+        var newHeight     = currentBounds.height;
+        var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
+
+        if (currentRatio > aspectRatio) {
+            // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
+            // 新しい幅 = 新しい高さ * 目標比率
+            newWidth = newHeight * aspectRatio;
+        } else {
+            // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
+            // 新しい高さ = 新しい幅 / 目標比率
+            newHeight = newWidth / aspectRatio;
+        }
+
+        // 元の位置を維持しつつ、ビューアのサイズを変更
+        Canv.size = [newWidth, newHeight];
+
+        // 再描画を促す
+        Canv.layout.layout(true);
+        CImageViewDLg.isResizing = false;
+}
 
 
 //インスタンスを生成。なお、CHellowWorldDlgの引数にも、インスタンス名(DlgPaint)を記入のこと！！
