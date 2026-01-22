@@ -154,6 +154,11 @@ CImageViewDLg.prototype.onResizing = function() {
     // 元の位置を維持しつつ、ビューアのサイズを変更
     Canv.size = [newWidth, newHeight];
 
+    // キャンバスを中央に配置（ダイアログのサイズとキャンバスのサイズの差分から計算）
+    var offsetX = (Dlg.size.width - newWidth) / 2;
+    var offsetY = (Dlg.size.height - newHeight) / 2;
+    Canv.location = [offsetX, offsetY];
+
     // 再描画を促す
     Canv.layout.layout(true);
     Obj.isResizing = false;
