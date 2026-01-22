@@ -48,6 +48,8 @@ var aspectRatio = imageWidth / imageHeight;
 //-----------------------------------
 // クラス CBaseDialog
 //-----------------------------------
+
+// コンストラクタ
 function CBaseDialog( DlgName, ResizeWindow ) { 
 
     CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
@@ -55,24 +57,23 @@ function CBaseDialog( DlgName, ResizeWindow ) {
 
     CBaseDialog.TheObj = this;                 // クラスインスタンスを指す this を退避( 静的プロパティ )
 
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // インスタンスメソッドを呼ぶための定義
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // インスタンスメソッドを呼ぶための紐付け
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // onResizing サイズ変更中に呼び出される
     this.m_Dialog.onResizing = function() { 
         CBaseDialog.TheObj.onResizing();
     };
 }
 
-// クラス継承
-ClassInheritance(CBaseDialog, CPaletteWindow);
+ClassInheritance(CBaseDialog, CPaletteWindow);  // クラス継承
 
 
 //-----------------------------------
 // クラス CImageViewDLg
 //-----------------------------------
 
-// コンストラクタ (ここから) 
+// コンストラクタ
 function CImageViewDLg( DlgName ) { 
        
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
@@ -120,10 +121,9 @@ function CImageViewDLg( DlgName ) {
         }
     };
 
-} // コンストラクタ (ここまで) 
+}
 
-// クラス継承
-ClassInheritance(CImageViewDLg, CBaseDialog);
+ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
