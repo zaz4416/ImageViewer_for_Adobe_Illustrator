@@ -78,36 +78,34 @@ function CImageViewDLg( DlgName ) {
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
     CBaseDialog.call( this, DlgName, true ); 
 
-    CImageViewDLg.TheObj = this;              // クラスインスタンスを指す this を退避( 静的プロパティ )
-
     // 画像読み込み
     var uiImage = ScriptUI.newImage(imageFile);
 
     // パラメータ変更
-    this.m_Dialog .opacity = 1.0;                                         // 不透明度 
-    this.m_Dialog .preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
+    this.m_Dialog.opacity = 1.0;                                         // 不透明度 
+    this.m_Dialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
 
     // onResizing サイズ変更中に呼び出される
     this.isResizing = false; // 無限ループ防止フラグ
 
     // カスタム・カンバスを追加
-    this.canvas = this.m_Dialog .add("customview", undefined, {
+    this.m_Canvas = this.m_Dialog.add("customview", undefined, {
         multiline: false,
         scrollable: false
     });
-    this.canvas.size = [this.m_Dialog .preferredSize.width, this.m_Dialog .preferredSize .height]; // ビューアの初期サイズ
-    this.canvas.orientation = "column";
-    this.canvas.alignment = ["fill", "fill"];
+    this.m_Canvas.size = [this.m_Dialog.preferredSize.width, this.m_Dialog.preferredSize .height]; // ビューアの初期サイズ
+    this.m_Canvas.orientation = "column";
+    this.m_Canvas.alignment = ["fill", "fill"];
         
     // カスタム・カンバスのmousedown
-    this.canvas.addEventListener("mousedown", function(event) {
+    this.m_Canvas.addEventListener("mousedown", function(event) {
         var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
         // event.button は左クリックで 0、中央で 1、右で 2 を返す
         //alert(Sz);
     });
 
     // カスタム・カンバスのonDraw
-    this.canvas.onDraw = function() {
+    this.m_Canvas.onDraw = function() {
         var canv = this;
         var g = canv.graphics;
 
@@ -118,8 +116,7 @@ function CImageViewDLg( DlgName ) {
             // 画像をビュアーのサイズにリサイズして描画
             g.drawImage(uiImage, 0, 0, canv.size.width, canv.size.height);
 
-            //g.drawString(TheDialog.size[0],  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
-            //g.drawString(canv.size.width,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
+            //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
         }
     };
 
@@ -132,9 +129,9 @@ ClassInheritance(CImageViewDLg, CBaseDialog);
 // ClassInheritanceの後ろで、追加したいメソッドを定義
 CImageViewDLg.prototype.onResizing = function() {
 
-    var Obj  = CImageViewDLg.TheObj;
-    var Dlg  = Obj.GetDlg();
-    var Canv = Obj.canvas;
+    var Obj  = CBaseDialog.TheObj;
+    var Dlg  = Obj.m_Dialog;
+    var Canv = Obj.m_Canvas;
 
     //if (Obj.isResizing) return;
     Obj.isResizing = true;
