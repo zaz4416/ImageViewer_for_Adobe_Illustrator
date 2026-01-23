@@ -42,8 +42,6 @@ var imageHeight;           // 画像の高さ
     imageHeight = myImage.bounds.height; 
 }
 
-var aspectRatio = imageWidth / imageHeight;
-
 
 //-----------------------------------
 // クラス CBaseDialog
@@ -81,7 +79,9 @@ ClassInheritance(CBaseDialog, CPaletteWindow);  // クラス継承
 function CImageViewDLg( DlgName ) { 
        
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    CBaseDialog.call( this, DlgName, true ); 
+    CBaseDialog.call( this, DlgName, true );
+
+    this.aspectRatio = imageWidth / imageHeight;
 
     // 画像読み込み
     var uiImage = ScriptUI.newImage(imageFile);
@@ -145,14 +145,14 @@ CImageViewDLg.prototype.onResizing = function() {
         var newHeight     = currentBounds.height;
         var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
 
-        if (currentRatio > aspectRatio) {
+        if (currentRatio > this.aspectRatio) {
             // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
             // 新しい幅 = 新しい高さ * 目標比率
-                newWidth = newHeight * aspectRatio;
+                newWidth = newHeight * this.aspectRatio;
         } else {
             // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
             // 新しい高さ = 新しい幅 / 目標比率
-            newHeight = newWidth / aspectRatio;
+            newHeight = newWidth / this.aspectRatio;
         }
 
         // 元の位置を維持しつつ、ビューアのサイズを変更
