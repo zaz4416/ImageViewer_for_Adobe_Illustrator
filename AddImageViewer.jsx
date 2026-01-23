@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/22
+// Ver.1.0 : 2026/01/23
 
 #target illustrator
 #targetengine "main"
@@ -54,15 +54,19 @@ function CBaseDialog( DlgName, ResizeWindow ) {
 
     CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
     this.InitDialog( DlgName );                // イニシャライザ
+    
+    // 1. インスタンスのコンストラクタ（子クラス自身）の静的プロパティに保存
+    //this.constructor.TheObj = this;
 
-    CBaseDialog.TheObj = this;                 // クラスインスタンスを指す this を退避( 静的プロパティ )
+    // 2. インスタンスを指す参照を固定（クロージャ）
+    var self = this;
 
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // インスタンスメソッドを呼ぶための紐付け
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // onResizing サイズ変更中に呼び出される
     this.m_Dialog.onResizing = function() { 
-        CBaseDialog.TheObj.onResizing();
+        self.onResizing();
     };
 }
 
@@ -129,39 +133,44 @@ ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
 // ClassInheritanceの後ろで、追加したいメソッドを定義
 CImageViewDLg.prototype.onResizing = function() {
 
-    var Obj  = CBaseDialog.TheObj;
-    var Dlg  = Obj.m_Dialog;
-    var Canv = Obj.m_Canvas;
+    var Dlg  = this.m_Dialog;
+    var Canv = this.m_Canvas;
 
-    //if (Obj.isResizing) return;
-    Obj.isResizing = true;
+    if (this.isResizing) return;
+    this.isResizing = true;
 
-    var currentBounds = Dlg.bounds;
-    var newWidth      = currentBounds.width;
-    var newHeight     = currentBounds.height;
-    var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
+    try {
+        var currentBounds = Dlg.bounds;
+        var newWidth      = currentBounds.width;
+        var newHeight     = currentBounds.height;
+        var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
 
-    if (currentRatio > aspectRatio) {
-        // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
-        // 新しい幅 = 新しい高さ * 目標比率
-            newWidth = newHeight * aspectRatio;
-    } else {
-        // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
-        // 新しい高さ = 新しい幅 / 目標比率
-        newHeight = newWidth / aspectRatio;
+        if (currentRatio > aspectRatio) {
+            // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
+            // 新しい幅 = 新しい高さ * 目標比率
+                newWidth = newHeight * aspectRatio;
+        } else {
+            // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
+            // 新しい高さ = 新しい幅 / 目標比率
+            newHeight = newWidth / aspectRatio;
+        }
+
+        // 元の位置を維持しつつ、ビューアのサイズを変更
+        Canv.size = [newWidth, newHeight];
+
+        // キャンバスを中央に配置（ダイアログのサイズとキャンバスのサイズの差分から計算）
+        var offsetX = (Dlg.size.width - newWidth) / 2;
+        var offsetY = (Dlg.size.height - newHeight) / 2;
+        Canv.location = [offsetX, offsetY];
+
+        // 再描画を促す
+        Canv.layout.layout(true);
+    } catch (e) {
+        $.writeln(e.message);
+    } finally {
+        // 必ずフラグを戻す
+        this.isResizing = false;
     }
-
-    // 元の位置を維持しつつ、ビューアのサイズを変更
-    Canv.size = [newWidth, newHeight];
-
-    // キャンバスを中央に配置（ダイアログのサイズとキャンバスのサイズの差分から計算）
-    var offsetX = (Dlg.size.width - newWidth) / 2;
-    var offsetY = (Dlg.size.height - newHeight) / 2;
-    Canv.location = [offsetX, offsetY];
-
-    // 再描画を促す
-    Canv.layout.layout(true);
-    Obj.isResizing = false;
 }
 
 
@@ -172,15 +181,6 @@ var DlgPaint = new CImageViewDLg( "イメージ・ビューア" );
 main();
 
 function main()
-{    
-    // バージョン・チェック
-    if( appVersion()[0]  >= 24)
-    {
-        DlgPaint.ShowDlg(); 
-    }
-    else
-    {
-        var msg = {en : 'This script requires Illustrator 2020.', ja : 'このスクリプトは Illustrator 2020以降に対応しています。'} ;
-        alert(msg) ; 
-     }
+{
+    DlgPaint.ShowDlg(); 
 }
