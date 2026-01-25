@@ -152,7 +152,6 @@ CImageViewDLg.prototype.onResizing = function() {
 //インスタンスを生成。
 var DlgPaint = new CImageViewDLg();
 
-
 main();
 
 function main()
