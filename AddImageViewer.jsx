@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/23
+// Ver.1.0 : 2026/01/25
 
 #target illustrator
 #targetengine "main"
@@ -44,42 +44,17 @@ var imageHeight;           // 画像の高さ
 
 
 //-----------------------------------
-// クラス CBaseDialog
-//-----------------------------------
-
-// コンストラクタ
-function CBaseDialog( DlgName, ResizeWindow ) { 
-
-    CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
-    this.InitDialog( DlgName );                // イニシャライザ
-    
-    // 1. インスタンスのコンストラクタ（子クラス自身）の静的プロパティに保存
-    //this.constructor.TheObj = this;
-
-    // 2. インスタンスを指す参照を固定（クロージャ）
-    var self = this;
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // インスタンスメソッドを呼ぶための紐付け
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // onResizing サイズ変更中に呼び出される
-    this.m_Dialog.onResizing = function() { 
-        self.onResizing();
-    };
-}
-
-ClassInheritance(CBaseDialog, CPaletteWindow);  // クラス継承
-
-
-//-----------------------------------
 // クラス CImageViewDLg
 //-----------------------------------
 
 // コンストラクタ
-function CImageViewDLg( DlgName ) { 
+function CImageViewDLg() { 
        
-    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    CBaseDialog.call( this, DlgName, true );
+    // コンストラクタ
+    CPaletteWindow.call( this, true /* リサイズ可能なダイアログを生成 */ );
+    var self = this;
+
+    self.m_Dialog.onResizing = function() { self.onResizing(); };
 
     this.aspectRatio = imageWidth / imageHeight;
 
@@ -127,7 +102,7 @@ function CImageViewDLg( DlgName ) {
 
 }
 
-ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
+ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
