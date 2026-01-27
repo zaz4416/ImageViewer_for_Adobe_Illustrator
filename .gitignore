@@ -1,0 +1,7 @@
+### macOS ###
+# General
+.DS_Store
+.github/._workflows
+
+# Thumbnails
+._*

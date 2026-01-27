@@ -1,0 +1,45 @@
+﻿name: Release Asset Binder                  # ワークフロー名
+
+on:                                         # イベント,「Publish release」ボタンを押した瞬間に動作。
+  release:
+    types: [published]                      # リリースが公開された時に実行
+
+jobs:                                       # ジョブ定義
+  bind-assets:                              # ジョブID
+    runs-on: ubuntu-latest                  # ランナー
+    permissions:
+      contents: write # リリースにファイルをアップロードするために必須
+    
+    steps:                                  # ステップ定義
+      # 1. 現在のリポジトリとサブモジュールを再帰的にチェックアウト
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # サブモジュールがプライベートな場合は、事前にPATをSecretに登録して使用
+          # token: ${{ secrets.MY_PAT }} 
+
+      # 2. 必要であれば、さらに「全く別のリポジトリ」から特定のファイルをダウンロード
+      #- name: Fetch extra file from other repo
+      #  run: |
+      #    # 例: 特定のファイルを単発で取得する場合
+      #    curl -L -O github.com
+          
+      # 3. ファイルを一つにまとめる (zip)
+      - name: Create Package
+        run: |
+          # サブモジュールや取得したファイルを含めてzip化
+          zip -r source-full.zip . -x "*.git*"
+
+      # 4. GitHub CLIを使用してリリースにアップロード
+      - name: Upload to Release
+        run: |
+          # publishedイベントの場合、github.event.release.tag_name でタグを取得可能
+          gh release upload ${{ github.event.release.tag_name }} source-full.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          
+
+
+
