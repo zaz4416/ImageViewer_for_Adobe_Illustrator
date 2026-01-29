@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/25
+// Ver.1.0 : 2026/01/29
 
 #target illustrator
 #targetengine "main"
@@ -16,6 +16,17 @@ SELF = (function(){
 
 // 外部のJSXを読み込む
 $.evalFile(SELF.path + "/ZazLib/" + "PaletteWindow.jsx");
+
+// 言語ごとの辞書を定義
+var MyDictionary = {
+    GUI_JSX: {
+        en : "ScriptUI Dialog Builder - Export_EN.jsx",
+        ja : "ScriptUI Dialog Builder - Export_JP.jsx"
+    }
+};
+
+// --- LangStringsの辞書から自動翻訳処理 ---
+var LangStrings = GetWordsFromDictionary( MyDictionary );
 
 
 // ファイル選択
@@ -42,6 +53,59 @@ var imageHeight;           // 画像の高さ
     imageHeight = myImage.bounds.height; 
 }
 
+var aspectRatio = imageWidth / imageHeight;
+
+
+//-----------------------------------
+// クラス CBaseDialog
+//-----------------------------------
+
+// コンストラクタ
+function CBaseDialog( ResizeWindow ) { 
+
+    CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
+    var self = this;                         // クラスへののポインタを確保
+
+    // GUI用のスクリプトを読み込む
+    var selfFile = new File($.fileName);
+    var currentDir = selfFile.parent;
+    if ( self.LoadGUIfromJSX( currentDir.fullName + "/GUI.Panele_ImageViewer/" + LangStrings.GUI_JSX ) )
+    {
+        // GUIに変更を入れる
+        self.m_close.onClick = function() { self.onEndOfDialogClick(); }
+
+        self.m_PanelView.alignment = ["fill", "fill"];
+        self.m_PanelView.orientation = "stack"; // stackにすると中央配置の制御がしやすくなります
+
+        // パラメータ変更
+        self.m_Dialog.opacity = 1.0;                                         // 不透明度 
+        self.m_Dialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
+
+        // カスタム・カンバスを追加
+        self.m_Canvas = self.m_PanelView.add("customview", undefined, {
+            multiline: false,
+            scrollable: false
+        });
+        self.m_Canvas.size = [self.m_Dialog.preferredSize.width, self.m_Dialog.preferredSize.height]; // ビューアの初期サイズ
+        self.m_Canvas.orientation = "column";
+        self.m_Canvas.alignment = ["fill", "fill"];
+    }
+    else {
+        alert("GUIが未定です");
+        return;
+    }
+
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // インスタンスメソッドを呼ぶための紐付け
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // onResizing サイズ変更中に呼び出される
+    this.m_Dialog.onResizing = function() { 
+        self.onResizing();
+    };
+}
+
+ClassInheritance(CBaseDialog, CPaletteWindow);  // クラス継承
+
 
 //-----------------------------------
 // クラス CImageViewDLg
@@ -50,33 +114,17 @@ var imageHeight;           // 画像の高さ
 // コンストラクタ
 function CImageViewDLg() { 
        
-    // コンストラクタ
-    CPaletteWindow.call( this, true /* サイズ可能なダイアログを生成 */);
-    var self = this;
+    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
+    CBaseDialog.call( this, true );
 
-    self.m_Dialog.onResizing = function() { self.onResizing(); };
-
-    this.aspectRatio = imageWidth / imageHeight;
+    var self = CImageViewDLg.self;
 
     // 画像読み込み
     var uiImage = ScriptUI.newImage(imageFile);
 
-    // パラメータ変更
-    self.m_Dialog.opacity = 1.0;                                         // 不透明度 
-    self.m_Dialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
-
     // onResizing サイズ変更中に呼び出される
-    this.isResizing = false; // 無限ループ防止フラグ
+    self.isResizing = false; // 無限ループ防止フラグ
 
-    // カスタム・カンバスを追加
-    self.m_Canvas = this.m_Dialog.add("customview", undefined, {
-        multiline: false,
-        scrollable: false
-    });
-    self.m_Canvas.size = [this.m_Dialog.preferredSize.width, this.m_Dialog.preferredSize .height]; // ビューアの初期サイズ
-    self.m_Canvas.orientation = "column";
-    self.m_Canvas.alignment = ["fill", "fill"];
-        
     // カスタム・カンバスのmousedown
     self.m_Canvas.addEventListener("mousedown", function(event) {
         var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
@@ -102,49 +150,87 @@ function CImageViewDLg() {
 
 }
 
-ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
+ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
 CImageViewDLg.prototype.onResizing = function() {
 
-    var Dlg  = this.m_Dialog;
-    var Canv = this.m_Canvas;
+    var self  = CImageViewDLg.self;
 
-    if (this.isResizing) return;
-    this.isResizing = true;
+    if (self.isResizing) return;
 
-    try {
-        var currentBounds = Dlg.bounds;
-        var newWidth      = currentBounds.width;
-        var newHeight     = currentBounds.height;
-        var currentRatio  = newWidth / newHeight;    // 現在のサイズの縦横比を計算
+    var Dlg   = self.m_Dialog;
+    var Panel = self.m_PanelView;
+    var Canv  = self.m_Canvas;
+    var Btn = self.m_close; // 下にある閉じるボタン
 
-        if (currentRatio > this.aspectRatio) {
+    try{
+        self.isResizing = true;
+
+        // 1. ダイアログの現在の内寸（外枠ではなく描画領域）を取得
+        var dw = Dlg.size.width;
+        var dh = Dlg.size.height;
+
+        // 2. ボタンの位置を計算（ダイアログの最下部から30px上に配置）
+        // x座標は中央、y座標は下からボタンの高さ+余白を引いた位置
+        if (Btn) {
+            var btnX = (dw - Btn.size.width) / 2;
+            var btnY = dh - Btn.size.height - 15; // 15は下の余白
+            Btn.location = [btnX, btnY];
+        }
+
+        // 3. パネルのサイズをダイアログに追従させる（fill設定をコードで補強）
+        // ダイアログのサイズから余白（適宜調整）を引いたものをパネルサイズにする
+        var pw = dw - 20; // 左右の余白
+        var ph = dh - (Btn ? Btn.size.height + 40 : 40); // ボタンがある場合はその分引く
+        Panel.size = [pw, ph];
+
+        // 4. パネル内の有効エリア（内寸）を計算
+        var innerW = pw - (Panel.margins.left + Panel.margins.right);
+        var innerH = ph - (Panel.margins.top + Panel.margins.bottom);
+
+        var nw, nh;
+
+        // 5. アスペクト比に基づいてキャンバスのサイズを決定
+        if ((innerW / innerH) > aspectRatio) {
             // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
             // 新しい幅 = 新しい高さ * 目標比率
-                newWidth = newHeight * this.aspectRatio;
+            nh = innerH;
+            nw = innerH * aspectRatio;
         } else {
             // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
             // 新しい高さ = 新しい幅 / 目標比率
-            newHeight = newWidth / this.aspectRatio;
+            nw = innerW;
+            nh = innerW / aspectRatio;
         }
 
-        // 元の位置を維持しつつ、ビューアのサイズを変更
-        Canv.size = [newWidth, newHeight];
+        // 6. キャンバスのサイズを強制指定
+        Canv.size = [nw, nh];
 
-        // キャンバスを中央に配置（ダイアログのサイズとキャンバスのサイズの差分から計算）
-        var offsetX = (Dlg.size.width - newWidth) / 2;
-        var offsetY = (Dlg.size.height - newHeight) / 2;
-        Canv.location = [offsetX, offsetY];
+        // 7. locationを直接計算（stackに頼らず確実に配置）
+        Canv.location = [
+            (pw - nw) / 2,
+            (ph - nh) / 2
+        ];
 
-        // 再描画を促す
-        Canv.layout.layout(true);
-    } catch (e) {
-        $.writeln(e.message);
-    } finally {
-        // 必ずフラグを戻す
-        this.isResizing = false;
+        // 8. 明示的に再描画を要求（2026年環境でのチラつき防止）
+        Canv.notify("onDraw");
+    }
+    finally {
+        self.isResizing = false;
+    }
+}
+
+CImageViewDLg.prototype.onEndOfDialogClick = function() {
+    var  self = CImageViewDLg.self;
+    try
+    {
+        self.CloseDlg();
+    }
+    catch(e)
+    {
+        alert( e.message );
     }
 }
 
@@ -156,6 +242,15 @@ var DlgPaint = new CImageViewDLg();
 main();
 
 function main()
-{
-    DlgPaint.ShowDlg(); 
+{    
+    // バージョン・チェック
+    if( appVersion()[0]  >= 24)
+    {
+        DlgPaint.ShowDlg(); 
+    }
+    else
+    {
+        var msg = {en : 'This script requires Illustrator 2020.', ja : 'このスクリプトは Illustrator 2020以降に対応しています。'} ;
+        alert(msg) ; 
+     }
 }
