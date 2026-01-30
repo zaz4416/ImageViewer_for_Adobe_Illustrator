@@ -80,24 +80,29 @@ function CViewer(pDialog, pPanelView, imageFile) {
     }
 
     // --- モニター解像度を考慮したリサイズ ---
-    var screen = getScreenResolution();
-    var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
-    var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
+    {
+        var screen = getScreenResolution();
+        var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
+        var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
 
-    // 1/5サイズを基本としつつ、モニターからはみ出さないように調整
-    var targetW = imageWidth;
-    var targetH = imageHeight;
+        // モニターからはみ出さないように調整
+        var targetW = imageWidth;
+        var targetH = imageHeight;
 
-    if (targetW > maxW) {
-        targetW = maxW;
-        targetH = targetW / self.aspectRatio;
+        if (targetW > maxW) {
+            targetW = maxW;
+            targetH = targetW / self.aspectRatio;
+        }
+        if (targetH > maxH) {
+            targetH = maxH;
+            targetW = targetH * self.aspectRatio;
+        }
+
+        pDialog.preferredSize = [ targetW, targetH ];
     }
-    if (targetH > maxH) {
-        targetH = maxH;
-        targetW = targetH * self.aspectRatio;
-    }
-    
-    pDialog.preferredSize = [ targetW, targetH ];
+
+    // 画像読み込み
+    self.uiImage = ScriptUI.newImage(imageFile);
 
     // カスタム・カンバスを追加
     self.m_Canvas = pPanelView.add("customview", undefined, {
@@ -108,9 +113,6 @@ function CViewer(pDialog, pPanelView, imageFile) {
     self.m_Canvas.orientation = "column";
     self.m_Canvas.alignment = ["fill", "fill"];
     self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
-
-    // 画像読み込み
-    self.uiImage = ScriptUI.newImage(imageFile);
 
     // カスタム・カンバスのonDraw
     self.m_Canvas.onDraw = function() {
