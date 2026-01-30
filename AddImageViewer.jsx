@@ -33,27 +33,7 @@ var LangStrings = GetWordsFromDictionary( MyDictionary );
 var imageFile = File.openDialog("Select File");
 var imageWidth;            // 画像の幅
 var imageHeight;           // 画像の高さ
-
-// 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
-{
-    var win = new Window("palette", "Image Test");
-
-    // boundsを定義せずに画像を追加
-    var myImage = win.add('image', undefined, imageFile); 
-
-    // ここで width にアクセスしても undefined になる可能性が高い
-    // alert(myImage.width); // undefined
-
-    // ウィンドウを表示（または layout.layout() を呼び出す）ことで、初めて bounds が計算される
-    win.show();
-    win.hide(); // 非表示にする
-
-    // show() または layout() の後であれば、正しい値を取得できる
-    imageWidth  = myImage.bounds.width;
-    imageHeight = myImage.bounds.height; 
-}
-
-var aspectRatio = imageWidth / imageHeight;
+var aspectRatio ;
 
 
 //-----------------------------------
@@ -61,7 +41,28 @@ var aspectRatio = imageWidth / imageHeight;
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(m_Dialog, m_PanelView ) { 
+function CViewer(m_Dialog, m_PanelView ) {
+
+    // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
+    {
+        var win = new Window("palette", "Image Test");
+
+        // boundsを定義せずに画像を追加
+        var myImage = win.add('image', undefined, imageFile); 
+
+        // ここで width にアクセスしても undefined になる可能性が高い
+        // alert(myImage.width); // undefined
+
+        // ウィンドウを表示（または layout.layout() を呼び出す）ことで、初めて bounds が計算される
+        win.show();
+        win.hide(); // 非表示にする
+
+        // show() または layout() の後であれば、正しい値を取得できる
+        imageWidth  = myImage.bounds.width;
+        imageHeight = myImage.bounds.height; 
+    }
+
+    aspectRatio = imageWidth / imageHeight;
 
     // カスタム・カンバスを追加
     var m_Canvas = m_PanelView.add("customview", undefined, {
