@@ -29,6 +29,25 @@ var MyDictionary = {
 var LangStrings = GetWordsFromDictionary( MyDictionary );
 
 
+/**
+ * メインモニターの有効な解像度（タスクバー等を除いた範囲）を取得
+ * @returns {Object} {width, height}
+ */
+function getScreenResolution() {
+    // 0番目がメインモニター。複数ある場合は必要に応じてループ
+    var primaryScreen = $.screens[0]; 
+    
+    // left/top/right/bottom が絶対座標で得られる
+    var screenW = primaryScreen.right - primaryScreen.left;
+    var screenH = primaryScreen.bottom - primaryScreen.top;
+    
+    return {
+        width: screenW,
+        height: screenH
+    };
+}
+
+
 //-----------------------------------
 // クラス CViewer
 //-----------------------------------
@@ -60,8 +79,25 @@ function CViewer(pDialog, pPanelView, imageFile) {
         win.close(); // メモリ解放のためにclose
     }
 
-    // ダイアログのサイズを変更(画像の５分の１サイズとした)
-    pDialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];
+    // --- モニター解像度を考慮したリサイズ ---
+    var screen = getScreenResolution();
+    var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
+    var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
+
+    // 1/5サイズを基本としつつ、モニターからはみ出さないように調整
+    var targetW = imageWidth;
+    var targetH = imageHeight;
+
+    if (targetW > maxW) {
+        targetW = maxW;
+        targetH = targetW / self.aspectRatio;
+    }
+    if (targetH > maxH) {
+        targetH = maxH;
+        targetW = targetH * self.aspectRatio;
+    }
+    
+    pDialog.preferredSize = [ targetW, targetH ];
 
     // カスタム・カンバスを追加
     self.m_Canvas = pPanelView.add("customview", undefined, {
