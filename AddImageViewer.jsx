@@ -29,8 +29,6 @@ var MyDictionary = {
 var LangStrings = GetWordsFromDictionary( MyDictionary );
 
 
-// ファイル選択
-var imageFile = File.openDialog("Select File");
 var imageWidth;            // 画像の幅
 var imageHeight;           // 画像の高さ
 var aspectRatio ;
@@ -41,7 +39,7 @@ var aspectRatio ;
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(m_Dialog, m_PanelView ) {
+function CViewer(m_Dialog, m_PanelView, imageFile) {
 
     // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
     {
@@ -99,7 +97,9 @@ function CBaseDialog( ResizeWindow ) {
         self.m_Dialog.opacity = 1.0;                                         // 不透明度 
         self.m_Dialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
 
-        self.m_Canvas = new CViewer(self.m_Dialog, self.m_PanelView, self.m_Canvas);
+        // ファイル選択
+        self.imageFile = File.openDialog("Select File");
+        self.m_Canvas = new CViewer(self.m_Dialog, self.m_PanelView, self.imageFile);
     }
     else {
         alert("GUIが未定です");
@@ -131,7 +131,7 @@ function CImageViewDLg() {
     var self = CImageViewDLg.self;
 
     // 画像読み込み
-    var uiImage = ScriptUI.newImage(imageFile);
+    var uiImage = ScriptUI.newImage(self.imageFile);
 
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
