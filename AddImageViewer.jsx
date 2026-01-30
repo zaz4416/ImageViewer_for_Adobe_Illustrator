@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/29
+// Ver.1.0 : 2026/01/30
 
 #target illustrator
 #targetengine "main"
@@ -27,9 +27,6 @@ var MyDictionary = {
 
 // --- LangStringsの辞書から自動翻訳処理 ---
 var LangStrings = GetWordsFromDictionary( MyDictionary );
-
-       
-var aspectRatio ;
 
 
 //-----------------------------------
@@ -58,18 +55,20 @@ function CViewer(pDialog, pPanelView, imageFile) {
         this.imageHeight = myImage.bounds.height;   // 画像の高さ
     }
 
-    aspectRatio = this.imageWidth / this.imageHeight;
+    this.aspectRatio = this.imageWidth / this.imageHeight;  // 画像の縦横比
+
+    win.close(); // メモリ解放のためにclose
 
     // カスタム・カンバスを追加
-    var m_Canvas = pPanelView.add("customview", undefined, {
+    this.m_Canvas = pPanelView.add("customview", undefined, {
         multiline: false,
         scrollable: false
     });
-    m_Canvas.size = [pDialog.preferredSize.width, pDialog.preferredSize.height]; // ビューアの初期サイズ
-    m_Canvas.orientation = "column";
-    m_Canvas.alignment = ["fill", "fill"];
+    this.m_Canvas.size = [pDialog.preferredSize.width, pDialog.preferredSize.height]; // ビューアの初期サイズ
+    this.m_Canvas.orientation = "column";
+    this.m_Canvas.alignment = ["fill", "fill"];
 
-    return m_Canvas;
+    return this;
 }
 
 
@@ -95,7 +94,7 @@ function CBaseDialog( ResizeWindow ) {
        
         // ファイル選択
         self.imageFile = File.openDialog("Select File");
-        self.m_Canvas = new CViewer(self.m_Dialog, self.m_PanelView, self.imageFile);
+        self.m_Viewer = new CViewer(self.m_Dialog, self.m_PanelView, self.imageFile);
 
          // パラメータ変更
         self.m_Dialog.opacity = 1.0;                                         // 不透明度 
@@ -137,14 +136,14 @@ function CImageViewDLg() {
     self.isResizing = false; // 無限ループ防止フラグ
 
     // カスタム・カンバスのmousedown
-    self.m_Canvas.addEventListener("mousedown", function(event) {
+    self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
         var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
         // event.button は左クリックで 0、中央で 1、右で 2 を返す
         //alert(Sz);
     });
 
     // カスタム・カンバスのonDraw
-    self.m_Canvas.onDraw = function() {
+    self.m_Viewer.m_Canvas.onDraw = function() {
         var canv = this;
         var g = canv.graphics;
 
@@ -173,7 +172,7 @@ CImageViewDLg.prototype.onResizing = function() {
 
     var Dlg   = self.m_Dialog;
     var Panel = self.m_PanelView;
-    var Canv  = self.m_Canvas;
+    var Canv  = self.m_Viewer.m_Canvas;
     var Btn = self.m_close; // 下にある閉じるボタン
 
     try{
@@ -204,16 +203,16 @@ CImageViewDLg.prototype.onResizing = function() {
         var nw, nh;
 
         // 5. アスペクト比に基づいてキャンバスのサイズを決定
-        if ((innerW / innerH) > aspectRatio) {
+        if ((innerW / innerH) > self.m_Viewer.aspectRatio) {
             // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
             // 新しい幅 = 新しい高さ * 目標比率
             nh = innerH;
-            nw = innerH * aspectRatio;
+            nw = innerH * self.m_Viewer.aspectRatio;
         } else {
             // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
             // 新しい高さ = 新しい幅 / 目標比率
             nw = innerW;
-            nh = innerW / aspectRatio;
+            nh = innerW / self.m_Viewer.aspectRatio;
         }
 
         // 6. キャンバスのサイズを強制指定
