@@ -184,19 +184,19 @@ CImageViewDLg.prototype.onResizing = function() {
         var dw = Dlg.size.width;
         var dh = Dlg.size.height;
 
-        // 3. パネルのサイズをダイアログに追従させる（fill設定をコードで補強）
+        // 2. パネルのサイズをダイアログに追従させる（fill設定をコードで補強）
         // ダイアログのサイズから余白（適宜調整）を引いたものをパネルサイズにする
         var pw = dw - 20; // 左右の余白
-        var ph = dh - (Btn ? Btn.size.height + 40 : 40); // ボタンがある場合はその分引く
+        var ph = dh - PanelTool.size.height; // パネル分を引く
         Panel.size = [pw, ph];
 
-        // 4. パネル内の有効エリア（内寸）を計算
+        // 3. パネル内の有効エリア（内寸）を計算
         var innerW = pw - (Panel.margins.left + Panel.margins.right);
         var innerH = ph - (Panel.margins.top + Panel.margins.bottom);
 
         var nw, nh;
 
-        // 5. アスペクト比に基づいてキャンバスのサイズを決定
+        // 4. アスペクト比に基づいてキャンバスのサイズを決定
         if ((innerW / innerH) > self.m_Viewer.aspectRatio) {
             // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
             // 新しい幅 = 新しい高さ * 目標比率
@@ -209,18 +209,18 @@ CImageViewDLg.prototype.onResizing = function() {
             nh = innerW / self.m_Viewer.aspectRatio;
         }
 
-        // 6. キャンバスのサイズを強制指定
+        // 5. キャンバスのサイズを強制指定
         Canv.size = [nw, nh];
 
-        // 7. locationを直接計算（stackに頼らず確実に配置）
+        // 6. locationを直接計算（stackに頼らず確実に配置）
         Canv.location = [ (pw - nw) / 2, (ph - nh) / 2 ];
 
-        // 8. 明示的に再描画を要求（2026年環境でのチラつき防止）
+        // 7. 明示的に再描画を要求（2026年環境でのチラつき防止）
         Canv.notify("onDraw");
 
-        // ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
-        // 子要素（m_closeなど）は、親（m_PanelTool）の
-        //  orientation（並び方向）と alignChildren（揃え位置）に基づいて自動配置されます。
+        // 8. ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
+        //    子要素（m_closeなど）は、親（m_PanelTool）の
+        //    orientation（並び方向）と alignChildren（揃え位置）に基づいて自動配置されます。
         Dlg.layout.layout(true); 
     }
     finally {
