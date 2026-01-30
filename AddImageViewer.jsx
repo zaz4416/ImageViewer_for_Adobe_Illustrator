@@ -28,7 +28,6 @@ var MyDictionary = {
 // --- LangStringsの辞書から自動翻訳処理 ---
 var LangStrings = GetWordsFromDictionary( MyDictionary );
 
-var uiImage;
 
 //-----------------------------------
 // クラス CViewer
@@ -75,7 +74,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
     self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
     // 画像読み込み
-    uiImage = ScriptUI.newImage(imageFile);
+    self.uiImage = ScriptUI.newImage(imageFile);
 
     // カスタム・カンバスのonDraw
     self.m_Canvas.onDraw = function() {
@@ -85,9 +84,9 @@ function CViewer(pDialog, pPanelView, imageFile) {
         var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
         var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
 
-        if ( uiImage ) {
+        if ( self.uiImage ) {
             // 画像をビュアーのサイズにリサイズして描画
-            g.drawImage(uiImage, 0, 0, canv.size.width, canv.size.height);
+            g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
 
             //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
         }
