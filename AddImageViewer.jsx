@@ -175,6 +175,7 @@ CImageViewDLg.prototype.onResizing = function() {
     var Panel = self.m_PanelView;
     var Canv  = self.m_Viewer.m_Canvas;
     var Btn = self.m_close; // 下にある閉じるボタン
+    var PanelTool = self.m_PanelTool;
 
     try{
         self.isResizing = true;
@@ -182,14 +183,6 @@ CImageViewDLg.prototype.onResizing = function() {
         // 1. ダイアログの現在の内寸（外枠ではなく描画領域）を取得
         var dw = Dlg.size.width;
         var dh = Dlg.size.height;
-
-        // 2. ボタンの位置を計算（ダイアログの最下部から30px上に配置）
-        // x座標は中央、y座標は下からボタンの高さ+余白を引いた位置
-        if (Btn) {
-            var btnX = (dw - Btn.size.width) / 2;
-            var btnY = dh - Btn.size.height - 15; // 15は下の余白
-            Btn.location = [btnX, btnY];
-        }
 
         // 3. パネルのサイズをダイアログに追従させる（fill設定をコードで補強）
         // ダイアログのサイズから余白（適宜調整）を引いたものをパネルサイズにする
@@ -220,13 +213,15 @@ CImageViewDLg.prototype.onResizing = function() {
         Canv.size = [nw, nh];
 
         // 7. locationを直接計算（stackに頼らず確実に配置）
-        Canv.location = [
-            (pw - nw) / 2,
-            (ph - nh) / 2
-        ];
+        Canv.location = [ (pw - nw) / 2, (ph - nh) / 2 ];
 
         // 8. 明示的に再描画を要求（2026年環境でのチラつき防止）
         Canv.notify("onDraw");
+
+        // ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
+        // 子要素（m_closeなど）は、親（m_PanelTool）の
+        //  orientation（並び方向）と alignChildren（揃え位置）に基づいて自動配置されます。
+        Dlg.layout.layout(true); 
     }
     finally {
         self.isResizing = false;
