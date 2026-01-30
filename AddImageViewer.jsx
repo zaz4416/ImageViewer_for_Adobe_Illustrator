@@ -225,8 +225,7 @@ CImageViewDLg.prototype.onResizing = function() {
         // 2. パネルのサイズをダイアログに追従させる（fill設定をコードで補強）
         // ダイアログのサイズから余白（適宜調整）を引いたものをパネルサイズにする
         var pw = dw - 20; // 左右の余白
-        var ph = dh - PanelTool.size.height; // パネル分を引く
-        Panel.size = [pw, ph];
+        var ph = dh - PanelTool.size.height-50; // パネル分を引く
 
         // 3. パネル内の有効エリア（内寸）を計算
         var innerW = pw - (Panel.margins.left + Panel.margins.right);
