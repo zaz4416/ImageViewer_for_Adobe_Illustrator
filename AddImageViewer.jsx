@@ -78,8 +78,8 @@ function CViewer(pDialog, pPanelView, imageFile) {
     uiImage = ScriptUI.newImage(imageFile);
 
     // カスタム・カンバスのonDraw
-    this.m_Canvas.onDraw = function() {
-        var canv = this;
+    self.m_Canvas.onDraw = function() {
+        var canv = this;    // m_Canvasのthis
         var g = canv.graphics;
 
         var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
