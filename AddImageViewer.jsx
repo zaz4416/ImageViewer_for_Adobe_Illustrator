@@ -88,6 +88,9 @@ function CViewer(pDialog, pPanelView, imageFile) {
         }
     };
 
+    // 画像読み込み
+    uiImage = ScriptUI.newImage(imageFile);
+
     return this;
 }
 
@@ -149,9 +152,6 @@ function CImageViewDLg() {
     CBaseDialog.call( this, true );
 
     var self = CImageViewDLg.self;
-
-    // 画像読み込み
-    uiImage = ScriptUI.newImage(self.imageFile);
 
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
