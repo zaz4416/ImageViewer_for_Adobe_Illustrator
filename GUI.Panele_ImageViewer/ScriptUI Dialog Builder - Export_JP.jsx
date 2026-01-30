@@ -25,14 +25,14 @@ var m_PanelView = Dgl.add("panel", undefined, undefined, {name: "m_PanelView"});
 // M_PANELTOOL
 // ===========
 var m_PanelTool = Dgl.add("panel", undefined, undefined, {name: "m_PanelTool"}); 
-    m_PanelTool.text = "ツール"; 
+    m_PanelTool.text = "Tool"; 
     m_PanelTool.orientation = "row"; 
     m_PanelTool.alignChildren = ["left","top"]; 
     m_PanelTool.spacing = 10; 
     m_PanelTool.margins = 10; 
 
 var m_BtnUndef = m_PanelTool.add("button", undefined, undefined, {name: "m_BtnUndef"}); 
-    m_BtnUndef.text = "未定"; 
+    m_BtnUndef.text = "Undef"; 
 
 var m_close = m_PanelTool.add("button", undefined, undefined, {name: "m_close"}); 
     m_close.text = "閉じる"; 
