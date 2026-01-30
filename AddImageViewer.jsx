@@ -28,6 +28,7 @@ var MyDictionary = {
 // --- LangStringsの辞書から自動翻訳処理 ---
 var LangStrings = GetWordsFromDictionary( MyDictionary );
 
+var uiImage;
 
 //-----------------------------------
 // クラス CViewer
@@ -70,8 +71,29 @@ function CViewer(pDialog, pPanelView, imageFile) {
     this.m_Canvas.orientation = "column";
     this.m_Canvas.alignment = ["fill", "fill"];
     this.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+
+    // カスタム・カンバスのonDraw
+    this.m_Canvas.onDraw = function() {
+        var canv = this;
+        var g = canv.graphics;
+
+        var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
+        var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
+
+        if ( uiImage ) {
+            // 画像をビュアーのサイズにリサイズして描画
+            g.drawImage(uiImage, 0, 0, canv.size.width, canv.size.height);
+
+            //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+        }
+    };
+
     return this;
 }
+
+
+
+
 
 
 //-----------------------------------
@@ -129,7 +151,7 @@ function CImageViewDLg() {
     var self = CImageViewDLg.self;
 
     // 画像読み込み
-    var uiImage = ScriptUI.newImage(self.imageFile);
+    uiImage = ScriptUI.newImage(self.imageFile);
 
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
@@ -140,23 +162,6 @@ function CImageViewDLg() {
         // event.button は左クリックで 0、中央で 1、右で 2 を返す
         //alert(Sz);
     });
-
-    // カスタム・カンバスのonDraw
-    self.m_Viewer.m_Canvas.onDraw = function() {
-        var canv = this;
-        var g = canv.graphics;
-
-        var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
-        var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
-
-        if ( uiImage ) {
-            // 画像をビュアーのサイズにリサイズして描画
-            g.drawImage(uiImage, 0, 0, canv.size.width, canv.size.height);
-
-            //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
-        }
-    };
-
 }
 
 ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
