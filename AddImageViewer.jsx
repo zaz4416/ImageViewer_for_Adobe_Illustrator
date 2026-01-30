@@ -28,9 +28,7 @@ var MyDictionary = {
 // --- LangStringsの辞書から自動翻訳処理 ---
 var LangStrings = GetWordsFromDictionary( MyDictionary );
 
-
-var imageWidth;            // 画像の幅
-var imageHeight;           // 画像の高さ
+       
 var aspectRatio ;
 
 
@@ -39,7 +37,7 @@ var aspectRatio ;
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(m_Dialog, m_PanelView, imageFile) {
+function CViewer(pDialog, pPanelView, imageFile) {
 
     // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
     {
@@ -56,18 +54,18 @@ function CViewer(m_Dialog, m_PanelView, imageFile) {
         win.hide(); // 非表示にする
 
         // show() または layout() の後であれば、正しい値を取得できる
-        imageWidth  = myImage.bounds.width;
-        imageHeight = myImage.bounds.height; 
+        this.imageWidth  = myImage.bounds.width;    // 画像の幅
+        this.imageHeight = myImage.bounds.height;   // 画像の高さ
     }
 
-    aspectRatio = imageWidth / imageHeight;
+    aspectRatio = this.imageWidth / this.imageHeight;
 
     // カスタム・カンバスを追加
-    var m_Canvas = m_PanelView.add("customview", undefined, {
+    var m_Canvas = pPanelView.add("customview", undefined, {
         multiline: false,
         scrollable: false
     });
-    m_Canvas.size = [m_Dialog.preferredSize.width, m_Dialog.preferredSize.height]; // ビューアの初期サイズ
+    m_Canvas.size = [pDialog.preferredSize.width, pDialog.preferredSize.height]; // ビューアの初期サイズ
     m_Canvas.orientation = "column";
     m_Canvas.alignment = ["fill", "fill"];
 
@@ -85,6 +83,8 @@ function CBaseDialog( ResizeWindow ) {
     CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
     var self = this;                         // クラスへののポインタを確保
 
+    self.m_Dialog.preferredSize = [ 1000, 1000 ];   // ダイアログのサイズを設定
+
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
     var currentDir = selfFile.parent;
@@ -92,14 +92,14 @@ function CBaseDialog( ResizeWindow ) {
     {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
-
-        // パラメータ変更
-        self.m_Dialog.opacity = 1.0;                                         // 不透明度 
-        self.m_Dialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
-
+       
         // ファイル選択
         self.imageFile = File.openDialog("Select File");
         self.m_Canvas = new CViewer(self.m_Dialog, self.m_PanelView, self.imageFile);
+
+         // パラメータ変更
+        self.m_Dialog.opacity = 1.0;                                         // 不透明度 
+
     }
     else {
         alert("GUIが未定です");
