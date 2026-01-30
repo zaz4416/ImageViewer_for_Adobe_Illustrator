@@ -53,21 +53,23 @@ function CViewer(pDialog, pPanelView, imageFile) {
         // show() または layout() の後であれば、正しい値を取得できる
         this.imageWidth  = myImage.bounds.width;    // 画像の幅
         this.imageHeight = myImage.bounds.height;   // 画像の高さ
+        this.aspectRatio = this.imageWidth / this.imageHeight;  // 画像の縦横比
+
+        win.close(); // メモリ解放のためにclose
     }
 
-    this.aspectRatio = this.imageWidth / this.imageHeight;  // 画像の縦横比
-
-    win.close(); // メモリ解放のためにclose
+    // ダイアログのサイズを変更(画像の５分の１サイズとした)
+    pDialog.preferredSize = [ this.imageWidth / 5, this.imageHeight / 5 ];
 
     // カスタム・カンバスを追加
     this.m_Canvas = pPanelView.add("customview", undefined, {
         multiline: false,
         scrollable: false
     });
-    this.m_Canvas.size = [pDialog.preferredSize.width, pDialog.preferredSize.height]; // ビューアの初期サイズ
+    //this.m_Canvas.size = [pDialog.preferredSize.width, pDialog.preferredSize.height]; // ビューアの初期サイズ
     this.m_Canvas.orientation = "column";
     this.m_Canvas.alignment = ["fill", "fill"];
-
+    this.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
     return this;
 }
 
@@ -82,8 +84,6 @@ function CBaseDialog( ResizeWindow ) {
     CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
     var self = this;                         // クラスへののポインタを確保
 
-    self.m_Dialog.preferredSize = [ 1000, 1000 ];   // ダイアログのサイズを設定
-
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
     var currentDir = selfFile.parent;
@@ -94,11 +94,10 @@ function CBaseDialog( ResizeWindow ) {
        
         // ファイル選択
         self.imageFile = File.openDialog("Select File");
-        self.m_Viewer = new CViewer(self.m_Dialog, self.m_PanelView, self.imageFile);
+        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, self.imageFile );
 
          // パラメータ変更
-        self.m_Dialog.opacity = 1.0;                                         // 不透明度 
-
+        self.m_Dialog.opacity = 1.0;                                         // 不透明度    
     }
     else {
         alert("GUIが未定です");
