@@ -57,6 +57,26 @@ var aspectRatio = imageWidth / imageHeight;
 
 
 //-----------------------------------
+// クラス CViewer
+//-----------------------------------
+
+// コンストラクタ
+function CViewer(m_Dialog, m_PanelView ) { 
+
+    // カスタム・カンバスを追加
+    var m_Canvas = m_PanelView.add("customview", undefined, {
+        multiline: false,
+        scrollable: false
+    });
+    m_Canvas.size = [m_Dialog.preferredSize.width, m_Dialog.preferredSize.height]; // ビューアの初期サイズ
+    m_Canvas.orientation = "column";
+    m_Canvas.alignment = ["fill", "fill"];
+
+    return m_Canvas;
+}
+
+
+//-----------------------------------
 // クラス CBaseDialog
 //-----------------------------------
 
@@ -74,21 +94,11 @@ function CBaseDialog( ResizeWindow ) {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
 
-        self.m_PanelView.alignment = ["fill", "fill"];
-        self.m_PanelView.orientation = "stack"; // stackにすると中央配置の制御がしやすくなります
-
         // パラメータ変更
         self.m_Dialog.opacity = 1.0;                                         // 不透明度 
         self.m_Dialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];   // ダイアログのサイズを変更(画像の５分の１サイズとした)
 
-        // カスタム・カンバスを追加
-        self.m_Canvas = self.m_PanelView.add("customview", undefined, {
-            multiline: false,
-            scrollable: false
-        });
-        self.m_Canvas.size = [self.m_Dialog.preferredSize.width, self.m_Dialog.preferredSize.height]; // ビューアの初期サイズ
-        self.m_Canvas.orientation = "column";
-        self.m_Canvas.alignment = ["fill", "fill"];
+        self.m_Canvas = new CViewer(self.m_Dialog, self.m_PanelView, self.m_Canvas);
     }
     else {
         alert("GUIが未定です");
