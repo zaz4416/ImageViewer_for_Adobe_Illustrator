@@ -53,15 +53,15 @@ function CViewer(pDialog, pPanelView, imageFile) {
         win.hide(); // 非表示にする
 
         // show() または layout() の後であれば、正しい値を取得できる
-        self.imageWidth  = myImage.bounds.width;    // 画像の幅
-        self.imageHeight = myImage.bounds.height;   // 画像の高さ
-        self.aspectRatio = self.imageWidth / self.imageHeight;  // 画像の縦横比
+        var imageWidth  = myImage.bounds.width;    // 画像の幅
+        var imageHeight = myImage.bounds.height;   // 画像の高さ
+        self.aspectRatio = imageWidth / imageHeight;  // 画像の縦横比
 
         win.close(); // メモリ解放のためにclose
     }
 
     // ダイアログのサイズを変更(画像の５分の１サイズとした)
-    pDialog.preferredSize = [ self.imageWidth / 5, self.imageHeight / 5 ];
+    pDialog.preferredSize = [ imageWidth / 5, imageHeight / 5 ];
 
     // カスタム・カンバスを追加
     self.m_Canvas = pPanelView.add("customview", undefined, {
