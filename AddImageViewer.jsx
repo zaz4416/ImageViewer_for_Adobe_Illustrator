@@ -37,6 +37,8 @@ var uiImage;
 // コンストラクタ
 function CViewer(pDialog, pPanelView, imageFile) {
 
+    var self = this;
+
     // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
     {
         var win = new Window("palette", "Image Test");
@@ -52,25 +54,28 @@ function CViewer(pDialog, pPanelView, imageFile) {
         win.hide(); // 非表示にする
 
         // show() または layout() の後であれば、正しい値を取得できる
-        this.imageWidth  = myImage.bounds.width;    // 画像の幅
-        this.imageHeight = myImage.bounds.height;   // 画像の高さ
-        this.aspectRatio = this.imageWidth / this.imageHeight;  // 画像の縦横比
+        self.imageWidth  = myImage.bounds.width;    // 画像の幅
+        self.imageHeight = myImage.bounds.height;   // 画像の高さ
+        self.aspectRatio = self.imageWidth / self.imageHeight;  // 画像の縦横比
 
         win.close(); // メモリ解放のためにclose
     }
 
     // ダイアログのサイズを変更(画像の５分の１サイズとした)
-    pDialog.preferredSize = [ this.imageWidth / 5, this.imageHeight / 5 ];
+    pDialog.preferredSize = [ self.imageWidth / 5, self.imageHeight / 5 ];
 
     // カスタム・カンバスを追加
-    this.m_Canvas = pPanelView.add("customview", undefined, {
-        multiline: false,
+    self.m_Canvas = pPanelView.add("customview", undefined, {
+        multiline:  false,
         scrollable: false
     });
-    //this.m_Canvas.size = [pDialog.preferredSize.width, pDialog.preferredSize.height]; // ビューアの初期サイズ
-    this.m_Canvas.orientation = "column";
-    this.m_Canvas.alignment = ["fill", "fill"];
-    this.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+
+    self.m_Canvas.orientation = "column";
+    self.m_Canvas.alignment = ["fill", "fill"];
+    self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+
+    // 画像読み込み
+    uiImage = ScriptUI.newImage(imageFile);
 
     // カスタム・カンバスのonDraw
     this.m_Canvas.onDraw = function() {
@@ -88,15 +93,8 @@ function CViewer(pDialog, pPanelView, imageFile) {
         }
     };
 
-    // 画像読み込み
-    uiImage = ScriptUI.newImage(imageFile);
-
     return this;
 }
-
-
-
-
 
 
 //-----------------------------------
