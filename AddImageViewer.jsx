@@ -135,17 +135,16 @@ function CViewer(pDialog, pPanelView, imageFile) {
 
 
 //-----------------------------------
-// クラス CBaseDialog
+// クラス CImageViewDLg
 //-----------------------------------
 
 // コンストラクタ
-function CBaseDialog( ResizeWindow ) { 
+function CImageViewDLg() { 
+       
+    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
+    CPaletteWindow.call( this, true );
 
-    CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
-
-    // CPaletteWindow.self ではなく、自身のコンストラクタ（CBaseDialog）に
-    // 保存された self を取得する
-    var self = this.constructor.self;  
+    var self = CImageViewDLg.self; 
 
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
@@ -171,25 +170,9 @@ function CBaseDialog( ResizeWindow ) {
     // インスタンスメソッドを呼ぶための紐付け
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // onResizing サイズ変更中に呼び出される
-    this.m_Dialog.onResizing = function() { 
+    self.m_Dialog.onResizing = function() { 
         self.onResizing();
     };
-}
-
-ClassInheritance(CBaseDialog, CPaletteWindow);  // クラス継承
-
-
-//-----------------------------------
-// クラス CImageViewDLg
-//-----------------------------------
-
-// コンストラクタ
-function CImageViewDLg() { 
-       
-    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    CBaseDialog.call( this, true );
-
-    var self = CImageViewDLg.self;
 
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
@@ -202,7 +185,7 @@ function CImageViewDLg() {
     });
 }
 
-ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
+ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
