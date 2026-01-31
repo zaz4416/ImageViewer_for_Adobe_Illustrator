@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/30
+// Ver.1.0 : 2026/01/31
 
 #target illustrator
 #targetengine "main"
@@ -155,11 +155,11 @@ function CImageViewDLg() {
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
        
         // ファイル選択
-        self.imageFile = File.openDialog("Select File");
-        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, self.imageFile );
+        var imageFile = File.openDialog("Select File");
+        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
 
-         // パラメータ変更
-        self.m_Dialog.opacity = 1.0;                                         // 不透明度    
+        // パラメータ変更
+        self.m_Dialog.opacity = 1.0;   // 不透明度  
     }
     else {
         alert("GUIが未定です");
