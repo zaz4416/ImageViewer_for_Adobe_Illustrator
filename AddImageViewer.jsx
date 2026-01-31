@@ -142,7 +142,10 @@ function CViewer(pDialog, pPanelView, imageFile) {
 function CBaseDialog( ResizeWindow ) { 
 
     CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
-    var self = this;                           // クラスへののポインタを確保
+
+    // CPaletteWindow.self ではなく、自身のコンストラクタ（CBaseDialog）に
+    // 保存された self を取得する
+    var self = this.constructor.self;  
 
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
