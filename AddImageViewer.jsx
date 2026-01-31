@@ -18,7 +18,7 @@ SELF = (function(){
 $.evalFile(SELF.path + "/ZazLib/" + "PaletteWindow.jsx");
 
 // 言語ごとの辞書を定義
-var MyDictionary = {
+var MyDictionaryForViewer = {
     GUI_JSX: {
         en : "ScriptUI Dialog Builder - Export_EN.jsx",
         ja : "ScriptUI Dialog Builder - Export_JP.jsx"
@@ -38,8 +38,8 @@ var MyDictionary = {
 };
 
 
-// --- LangStringsの辞書から自動翻訳処理 ---
-var LangStrings = GetWordsFromDictionary( MyDictionary );
+// --- 辞書から自動翻訳処理 ---
+var LangStringsForViewer = GetWordsFromDictionary( MyDictionaryForViewer );
 
 
 /**
@@ -162,7 +162,7 @@ function CImageViewDLg() {
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
     var currentDir = selfFile.parent;
-    if ( self.LoadGUIfromJSX( currentDir.fullName + "/GUI.Panele_ImageViewer/" + LangStrings.GUI_JSX ) )
+    if ( self.LoadGUIfromJSX( currentDir.fullName + "/GUI.Panele_ImageViewer/" + LangStringsForViewer.GUI_JSX ) )
     {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
@@ -177,7 +177,7 @@ function CImageViewDLg() {
 
         if ( imageFile == null ) {
             // ファイルが選択されなかった時の処理
-            alert( LangStrings.Msg_DoNotSelectImageFile );
+            alert( LangStringsForViewer.Msg_DoNotSelectImageFile );
             return;
         }
 
@@ -187,7 +187,7 @@ function CImageViewDLg() {
         self.m_Dialog.opacity = 1.0;   // 不透明度  
     }
     else {
-        alert( LangStrings.Msg_UndefineGUI );
+        alert( LangStringsForViewer.Msg_UndefineGUI );
         return;
     }
 
@@ -282,7 +282,6 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 //インスタンスを生成。
 var DlgPaint = new CImageViewDLg();
 
-
 main();
 
 function main()
@@ -294,6 +293,6 @@ function main()
     }
     else
     {
-        alert( LangStrings.Msg_Require ) ; 
+        alert( LangStringsForViewer.Msg_Require ) ; 
      }
 }
