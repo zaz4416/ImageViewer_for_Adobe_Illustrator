@@ -69,80 +69,89 @@ function getScreenResolution() {
 function CViewer(pDialog, pPanelView, imageFile) {
 
     var self = this;
+    self.Result = null;
 
-    // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
+    try{
+        // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
+        {
+            var win = new Window("palette", "Image Test");
+
+            // boundsを定義せずに画像を追加
+            var myImage = win.add('image', undefined, imageFile); 
+
+            // ここで width にアクセスしても undefined になる可能性が高い
+            // alert(myImage.width); // undefined
+
+            // layout.layout() を呼び出すことで、初めて bounds が計算される
+            win.layout.layout(true);
+
+            // show() または layout() の後であれば、正しい値を取得できる
+            var imageWidth   = myImage.bounds.width;      // 画像の幅
+            var imageHeight  = myImage.bounds.height;     // 画像の高さ
+            self.aspectRatio   = imageWidth / imageHeight;  // 画像の縦横比
+
+            win.close(); // メモリ解放のためにclose
+        }
+
+        // --- モニター解像度を考慮したリサイズ ---
+        {
+            var screen = getScreenResolution();
+            var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
+            var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
+
+            // モニターからはみ出さないように調整
+            var targetW = imageWidth;
+            var targetH = imageHeight;
+
+            if (targetW > maxW) {
+                targetW = maxW;
+                targetH = targetW / self.aspectRatio;
+            }
+            if (targetH > maxH) {
+                targetH = maxH;
+                targetW = targetH * self.aspectRatio;
+            }
+
+            pDialog.preferredSize = [ targetW, targetH ];
+        }
+
+        // 画像読み込み
+        self.uiImage = ScriptUI.newImage(imageFile);
+
+        // カスタム・カンバスを追加
+        self.m_Canvas = pPanelView.add("customview", undefined, {
+            multiline:  false,
+            scrollable: false
+        });
+
+        self.m_Canvas.orientation = "column";
+        self.m_Canvas.alignment = ["fill", "fill"];
+        self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+
+        // カスタム・カンバスのonDraw
+        self.m_Canvas.onDraw = function() {
+            var canv = this;    // m_Canvasのthis
+            var g = canv.graphics;
+
+            var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
+            var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
+
+            if ( self.uiImage ) {
+                // 画像をビュアーのサイズにリサイズして描画
+                g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
+
+                //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+            }
+        }
+    }
+    catch(e)
     {
-        var win = new Window("palette", "Image Test");
-
-        // boundsを定義せずに画像を追加
-        var myImage = win.add('image', undefined, imageFile); 
-
-        // ここで width にアクセスしても undefined になる可能性が高い
-        // alert(myImage.width); // undefined
-
-        // layout.layout() を呼び出すことで、初めて bounds が計算される
-        win.layout.layout(true);
-
-        // show() または layout() の後であれば、正しい値を取得できる
-        var imageWidth   = myImage.bounds.width;      // 画像の幅
-        var imageHeight  = myImage.bounds.height;     // 画像の高さ
-        self.aspectRatio = imageWidth / imageHeight;  // 画像の縦横比
-
-        win.close(); // メモリ解放のためにclose
+        alert( e.message );
+        return null;    // この戻り値(null)を得ることができない
     }
 
-    // --- モニター解像度を考慮したリサイズ ---
-    {
-        var screen = getScreenResolution();
-        var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
-        var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
-
-        // モニターからはみ出さないように調整
-        var targetW = imageWidth;
-        var targetH = imageHeight;
-
-        if (targetW > maxW) {
-            targetW = maxW;
-            targetH = targetW / self.aspectRatio;
-        }
-        if (targetH > maxH) {
-            targetH = maxH;
-            targetW = targetH * self.aspectRatio;
-        }
-
-        pDialog.preferredSize = [ targetW, targetH ];
-    }
-
-    // 画像読み込み
-    self.uiImage = ScriptUI.newImage(imageFile);
-
-    // カスタム・カンバスを追加
-    self.m_Canvas = pPanelView.add("customview", undefined, {
-        multiline:  false,
-        scrollable: false
-    });
-
-    self.m_Canvas.orientation = "column";
-    self.m_Canvas.alignment = ["fill", "fill"];
-    self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
-
-    // カスタム・カンバスのonDraw
-    self.m_Canvas.onDraw = function() {
-        var canv = this;    // m_Canvasのthis
-        var g = canv.graphics;
-
-        var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
-        var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
-
-        if ( self.uiImage ) {
-            // 画像をビュアーのサイズにリサイズして描画
-            g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
-
-            //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
-        }
-    };
-
-    return this;
+    self.Result = self;
+    return self;
 }
 
 
@@ -156,7 +165,7 @@ function CImageViewDLg() {
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
     CPaletteWindow.call( this, true );
 
-    var self = CImageViewDLg.self; 
+    var self = CImageViewDLg.self;
 
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
@@ -180,7 +189,15 @@ function CImageViewDLg() {
             return;
         }
 
+        // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
         self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+        self.m_Viewer = self.m_Viewer.Result;
+
+        if (self.m_Viewer === null) {
+            alert("画像を読み取れません。");
+            self.CloseDlg();
+            return;
+        }
 
         // パラメータ変更
         self.m_Dialog.opacity = 1.0;   // 不透明度  
@@ -201,12 +218,15 @@ function CImageViewDLg() {
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
 
-    // カスタム・カンバスのmousedown
-    self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
-        var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
-        // event.button は左クリックで 0、中央で 1、右で 2 を返す
-        //alert(Sz);
-    });
+    if ( self.m_Viewer !== null ) {
+        // カスタム・カンバスのmousedown
+        self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
+            var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+            // event.button は左クリックで 0、中央で 1、右で 2 を返す
+            //alert(Sz);
+        });
+    }
+
 }
 
 ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
@@ -216,6 +236,10 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
 CImageViewDLg.prototype.onResizing = function() {
 
     var self  = CImageViewDLg.self;
+
+    if ( self.m_Viewer === null ) {
+        return;
+    }
 
     if (self.isResizing) return;
 
@@ -278,10 +302,7 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 
-//インスタンスを生成。
-var DlgPaint = new CImageViewDLg();
-
-main();
+var _DlgViewer;   // 唯一のオブジェクト
 
 function main()
 {
@@ -293,10 +314,13 @@ function main()
     // バージョン・チェック
     if( appName === "Adobe Illustrator" && appVersion()[0]  >= 24 )
     {
-        DlgPaint.ShowDlg(); 
+        _DlgViewer = new CImageViewDLg();
+        _DlgViewer.ShowDlg(); 
     }
     else
     {
         alert( LangStringsForViewer.Msg_Require ) ; 
-     }
+    }
 }
+
+main();
