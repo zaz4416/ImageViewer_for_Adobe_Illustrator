@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/30
+// Ver.1.0 : 2026/01/31
 
 #target illustrator
 #targetengine "main"
@@ -22,8 +22,21 @@ var MyDictionary = {
     GUI_JSX: {
         en : "ScriptUI Dialog Builder - Export_EN.jsx",
         ja : "ScriptUI Dialog Builder - Export_JP.jsx"
+    },
+    Msg_Require: {
+        en : "This script requires Illustrator 2020.",
+        ja : "このスクリプトは Illustrator 2020以降に対応しています。"
+    },
+    Msg_DoNotSelectImageFile: {
+        en : "Do not select a image file.",
+        ja : "画像が選択されませんでした。"
+    },
+    Msg_UndefineGUI: {
+        en : "Undefine GIU.",
+        ja : "GUIが未定です。"
     }
 };
+
 
 // --- LangStringsの辞書から自動翻訳処理 ---
 var LangStrings = GetWordsFromDictionary( MyDictionary );
@@ -135,14 +148,16 @@ function CViewer(pDialog, pPanelView, imageFile) {
 
 
 //-----------------------------------
-// クラス CBaseDialog
+// クラス CImageViewDLg
 //-----------------------------------
 
 // コンストラクタ
-function CBaseDialog( ResizeWindow ) { 
+function CImageViewDLg() { 
+       
+    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
+    CPaletteWindow.call( this, true );
 
-    CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
-    var self = this;                           // クラスへののポインタを確保
+    var self = CImageViewDLg.self; 
 
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
@@ -153,14 +168,26 @@ function CBaseDialog( ResizeWindow ) {
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
        
         // ファイル選択
-        self.imageFile = File.openDialog("Select File");
-        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, self.imageFile );
+        // Windows用: "表示名:*.拡張子;*.拡張子"
+        // Mac用: 関数によるフィルタ（または空文字）
+        var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
+            return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
+        };
+        var imageFile = File.openDialog("Select File", filter);
 
-         // パラメータ変更
-        self.m_Dialog.opacity = 1.0;                                         // 不透明度    
+        if ( imageFile == null ) {
+            // ファイルが選択されなかった時の処理
+            alert( LangStrings.Msg_DoNotSelectImageFile );
+            return;
+        }
+
+        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+
+        // パラメータ変更
+        self.m_Dialog.opacity = 1.0;   // 不透明度  
     }
     else {
-        alert("GUIが未定です");
+        alert( LangStrings.Msg_UndefineGUI );
         return;
     }
 
@@ -168,25 +195,9 @@ function CBaseDialog( ResizeWindow ) {
     // インスタンスメソッドを呼ぶための紐付け
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // onResizing サイズ変更中に呼び出される
-    this.m_Dialog.onResizing = function() { 
+    self.m_Dialog.onResizing = function() { 
         self.onResizing();
     };
-}
-
-ClassInheritance(CBaseDialog, CPaletteWindow);  // クラス継承
-
-
-//-----------------------------------
-// クラス CImageViewDLg
-//-----------------------------------
-
-// コンストラクタ
-function CImageViewDLg() { 
-       
-    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    CBaseDialog.call( this, true );
-
-    var self = CImageViewDLg.self;
 
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
@@ -199,7 +210,7 @@ function CImageViewDLg() {
     });
 }
 
-ClassInheritance(CImageViewDLg, CBaseDialog);   // クラス継承
+ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
 
 
 // ClassInheritanceの後ろで、追加したいメソッドを定義
@@ -283,7 +294,6 @@ function main()
     }
     else
     {
-        var msg = {en : 'This script requires Illustrator 2020.', ja : 'このスクリプトは Illustrator 2020以降に対応しています。'} ;
-        alert(msg) ; 
+        alert( LangStrings.Msg_Require ) ; 
      }
 }
