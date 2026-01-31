@@ -161,6 +161,13 @@ function CImageViewDLg() {
             return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
         };
         var imageFile = File.openDialog("Select File", filter);
+
+        if ( imageFile == null ) {
+            // ファイルが選択されなかった時の処理
+            alert( "画像が選択されませんでした" );
+            return;
+        }
+
         self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
 
         // パラメータ変更
