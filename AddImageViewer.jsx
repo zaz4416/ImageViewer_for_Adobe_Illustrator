@@ -80,13 +80,12 @@ function CViewer(pDialog, pPanelView, imageFile) {
         // ここで width にアクセスしても undefined になる可能性が高い
         // alert(myImage.width); // undefined
 
-        // ウィンドウを表示（または layout.layout() を呼び出す）ことで、初めて bounds が計算される
-        win.show();
-        win.hide(); // 非表示にする
+        // layout.layout() を呼び出すことで、初めて bounds が計算される
+        win.layout.layout(true);
 
         // show() または layout() の後であれば、正しい値を取得できる
-        var imageWidth  = myImage.bounds.width;    // 画像の幅
-        var imageHeight = myImage.bounds.height;   // 画像の高さ
+        var imageWidth   = myImage.bounds.width;      // 画像の幅
+        var imageHeight  = myImage.bounds.height;     // 画像の高さ
         self.aspectRatio = imageWidth / imageHeight;  // 画像の縦横比
 
         win.close(); // メモリ解放のためにclose
