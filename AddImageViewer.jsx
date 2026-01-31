@@ -142,7 +142,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
 function CBaseDialog( ResizeWindow ) { 
 
     CPaletteWindow.call( this, ResizeWindow ); // コンストラクタ
-    var self = this;                         // クラスへののポインタを確保
+    var self = this;                           // クラスへののポインタを確保
 
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
@@ -212,50 +212,40 @@ CImageViewDLg.prototype.onResizing = function() {
     var Dlg   = self.m_Dialog;
     var Panel = self.m_PanelView;
     var Canv  = self.m_Viewer.m_Canvas;
-    var Btn = self.m_close; // 下にある閉じるボタン
     var PanelTool = self.m_PanelTool;
 
     try{
         self.isResizing = true;
 
-        // 1. ダイアログの現在の内寸（外枠ではなく描画領域）を取得
-        var dw = Dlg.size.width;
-        var dh = Dlg.size.height;
+        // 1. ダイアログ内の有効エリア（内寸）を計算
+        var DialodWidth  = Dlg.size.width   - ( Dlg.margins.left + Dlg.margins.right  );
+        var DialogHeight = Dlg.size.height  - ( Dlg.margins.top  + Dlg.margins.bottom );
 
-        // 2. パネルのサイズをダイアログに追従させる（fill設定をコードで補強）
-        // ダイアログのサイズから余白（適宜調整）を引いたものをパネルサイズにする
-        var pw = dw - 20; // 左右の余白
-        var ph = dh - PanelTool.size.height-50; // パネル分を引く
+        // 2. パネル内の有効エリア（内寸）を計算
+        var innerW = DialodWidth  - ( Panel.margins.left + Panel.margins.right  );
+        var innerH = DialogHeight - ( Panel.margins.top  + Panel.margins.bottom ) - PanelTool.size.height - Dlg.spacing -10;
 
-        // 3. パネル内の有効エリア（内寸）を計算
-        var innerW = pw - (Panel.margins.left + Panel.margins.right);
-        var innerH = ph - (Panel.margins.top + Panel.margins.bottom);
-
-        var nw, nh;
-
-        // 4. アスペクト比に基づいてキャンバスのサイズを決定
+        // 3. アスペクト比に基づいてキャンバスのサイズを決定
         if ((innerW / innerH) > self.m_Viewer.aspectRatio) {
             // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
             // 新しい幅 = 新しい高さ * 目標比率
-            nh = innerH;
-            nw = innerH * self.m_Viewer.aspectRatio;
+            innerW = innerH * self.m_Viewer.aspectRatio;
         } else {
             // 高さが広すぎる（幅が足りない）場合：幅を基準に高さを調整
             // 新しい高さ = 新しい幅 / 目標比率
-            nw = innerW;
-            nh = innerW / self.m_Viewer.aspectRatio;
+            innerH = innerW / self.m_Viewer.aspectRatio;
         }
 
-        // 5. キャンバスのサイズを強制指定
-        Canv.size = [nw, nh];
+        // 4. キャンバスのサイズを強制指定
+        Canv.size = [innerW, innerH];
 
-        // 6. locationを直接計算（stackに頼らず確実に配置）
-        Canv.location = [ (pw - nw) / 2, (ph - nh) / 2 ];
+        // 5. locationを直接計算（stackに頼らず確実に配置）
+        Canv.location = [ (DialodWidth - innerW) / 2, (DialogHeight - innerH) / 2 ];
 
-        // 7. 明示的に再描画を要求（2026年環境でのチラつき防止）
+        // 6. 明示的に再描画を要求（2026年環境でのチラつき防止）
         Canv.notify("onDraw");
 
-        // 8. ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
+        // 7. ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
         //    子要素（m_closeなど）は、親（m_PanelTool）の
         //    orientation（並び方向）と alignChildren（揃え位置）に基づいて自動配置されます。
         Dlg.layout.layout(true); 
