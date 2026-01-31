@@ -22,8 +22,21 @@ var MyDictionary = {
     GUI_JSX: {
         en : "ScriptUI Dialog Builder - Export_EN.jsx",
         ja : "ScriptUI Dialog Builder - Export_JP.jsx"
+    },
+    Msg_Require: {
+        en : "This script requires Illustrator 2020.",
+        ja : "このスクリプトは Illustrator 2020以降に対応しています。"
+    },
+    Msg_DoNotSelectImageFile: {
+        en : "Do not select a image file.",
+        ja : "画像が選択されませんでした。"
+    },
+    Msg_UndefineGUI: {
+        en : "Undefine GIU.",
+        ja : "GUIが未定です。"
     }
 };
+
 
 // --- LangStringsの辞書から自動翻訳処理 ---
 var LangStrings = GetWordsFromDictionary( MyDictionary );
@@ -164,7 +177,7 @@ function CImageViewDLg() {
 
         if ( imageFile == null ) {
             // ファイルが選択されなかった時の処理
-            alert( "画像が選択されませんでした" );
+            alert( LangStrings.Msg_DoNotSelectImageFile );
             return;
         }
 
@@ -174,7 +187,7 @@ function CImageViewDLg() {
         self.m_Dialog.opacity = 1.0;   // 不透明度  
     }
     else {
-        alert("GUIが未定です");
+        alert( LangStrings.Msg_UndefineGUI );
         return;
     }
 
@@ -281,7 +294,6 @@ function main()
     }
     else
     {
-        var msg = {en : 'This script requires Illustrator 2020.', ja : 'このスクリプトは Illustrator 2020以降に対応しています。'} ;
-        alert(msg) ; 
+        alert( LangStrings.Msg_Require ) ; 
      }
 }
