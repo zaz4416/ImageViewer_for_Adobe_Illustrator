@@ -155,7 +155,12 @@ function CImageViewDLg() {
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
        
         // ファイル選択
-        var imageFile = File.openDialog("Select File");
+        // Windows用: "表示名:*.拡張子;*.拡張子"
+        // Mac用: 関数によるフィルタ（または空文字）
+        var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
+            return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
+        };
+        var imageFile = File.openDialog("Select File", filter);
         self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
 
         // パラメータ変更
