@@ -221,11 +221,11 @@ CImageViewDLg.prototype.onResizing = function() {
         var DialodWidth  = Dlg.size.width   - ( Dlg.margins.left + Dlg.margins.right  );
         var DialogHeight = Dlg.size.height  - ( Dlg.margins.top  + Dlg.margins.bottom );
 
-        // 3. パネル内の有効エリア（内寸）を計算
+        // 2. パネル内の有効エリア（内寸）を計算
         var innerW = DialodWidth  - ( Panel.margins.left + Panel.margins.right  );
         var innerH = DialogHeight - ( Panel.margins.top  + Panel.margins.bottom ) - PanelTool.size.height - Dlg.spacing -10;
 
-        // 4. アスペクト比に基づいてキャンバスのサイズを決定
+        // 3. アスペクト比に基づいてキャンバスのサイズを決定
         if ((innerW / innerH) > self.m_Viewer.aspectRatio) {
             // 幅が広すぎる（高さが足りない）場合：高さを基準に幅を調整
             // 新しい幅 = 新しい高さ * 目標比率
@@ -236,16 +236,16 @@ CImageViewDLg.prototype.onResizing = function() {
             innerH = innerW / self.m_Viewer.aspectRatio;
         }
 
-        // 5. キャンバスのサイズを強制指定
+        // 4. キャンバスのサイズを強制指定
         Canv.size = [innerW, innerH];
 
-        // 6. locationを直接計算（stackに頼らず確実に配置）
+        // 5. locationを直接計算（stackに頼らず確実に配置）
         Canv.location = [ (DialodWidth - innerW) / 2, (DialogHeight - innerH) / 2 ];
 
-        // 7. 明示的に再描画を要求（2026年環境でのチラつき防止）
+        // 6. 明示的に再描画を要求（2026年環境でのチラつき防止）
         Canv.notify("onDraw");
 
-        // 8. ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
+        // 7. ScriptUIのレイアウトマネージャーで、子要素の位置を自動計算
         //    子要素（m_closeなど）は、親（m_PanelTool）の
         //    orientation（並び方向）と alignChildren（揃え位置）に基づいて自動配置されます。
         Dlg.layout.layout(true); 
