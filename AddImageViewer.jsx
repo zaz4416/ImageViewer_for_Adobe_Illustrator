@@ -284,9 +284,14 @@ var DlgPaint = new CImageViewDLg();
 main();
 
 function main()
-{    
+{
+    var appName = app.name;
+    // 実行結果の例:
+    // "Adobe Illustrator"
+    // "Adobe Photoshop"
+
     // バージョン・チェック
-    if( appVersion()[0]  >= 24)
+    if( appName === "Adobe Illustrator" && appVersion()[0]  >= 24 )
     {
         DlgPaint.ShowDlg(); 
     }
