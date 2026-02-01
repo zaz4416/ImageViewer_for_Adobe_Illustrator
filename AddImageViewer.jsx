@@ -118,13 +118,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
         // 画像読み込み
         self.uiImage = ScriptUI.newImage(imageFile);
 
-        alert(self.m_Canvas );
-
-        // self.m_Canvasがなければ追加
-        if ( ! self.m_Canvas  )
         {
-            alert("キャンバス追加")
-
             // カスタム・カンバスを追加
             self.m_Canvas = pPanelView.add("customview", undefined, {
                 multiline:  false,
@@ -133,6 +127,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
 
             self.m_Canvas.orientation = "column";
             self.m_Canvas.alignment = ["fill", "fill"];
+            self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
             // カスタム・カンバスのonDraw
             self.m_Canvas.onDraw = function() {
@@ -149,11 +144,6 @@ function CViewer(pDialog, pPanelView, imageFile) {
                     //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
                 }
             }
-        }
-
-        {
-            // キャンバスのサイズを決める
-            self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
         }
     }
     catch(e)
@@ -333,9 +323,18 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
             return;
         }
 
-        // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
+        // 1. m_PanelView内のコントロールを削除
+        self.m_PanelView.remove(self.m_Viewer.m_Canvas);
+
+        // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
+        self.m_PanelView.layout.layout(true);
+
+        // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
         self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
         self.m_Viewer = self.m_Viewer.Result;
+
+        // 4. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
+        self.m_PanelView.layout.layout(true);
 
     }
     catch(e)
