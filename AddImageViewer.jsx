@@ -314,7 +314,10 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
 
         if ( imageFile !== null ) {
             // 1. m_PanelView内のコントロールを削除
-            self.m_PanelView.remove(self.m_Viewer.m_Canvas);
+            if ( self.m_Viewer !== null )
+            {
+                self.m_PanelView.remove(self.m_Viewer.m_Canvas);
+            }
 
             // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
             self.m_PanelView.layout.layout(true);
