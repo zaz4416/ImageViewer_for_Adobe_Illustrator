@@ -9,6 +9,14 @@
 #target illustrator
 #targetengine "main"
 
+// ScriptLanguage が未定義の場合にのみ数値を代入
+if (typeof ScriptLanguage === "undefined") {
+    var ScriptLanguage = {
+        APPLESCRIPT_LANGUAGE: 1633969203, // Mac用
+        JSCRIPT: 1246970708,             // Windows用
+        JAVASCRIPT: 1246970707           // 汎用
+    };
+}
 
 SELF = (function(){
     try {app.documents.test()}
@@ -58,10 +66,20 @@ function getScreenResolution() {
     // left/top/right/bottom が絶対座標で得られる
     var screenW = primaryScreen.right - primaryScreen.left;
     var screenH = primaryScreen.bottom - primaryScreen.top;
+
+    var isMac = ($.os.indexOf("Mac") !== -1);
+    var isWin = ($.os.indexOf("Win") !== -1);
+    var scale = 1;
+
+    if (isMac) {
+        // Macにおいて、論理幅が 2000px 以下ならほぼ確実に 2倍(Retina) です
+        // 近年の MacBook / iMac はこの法則が適用されます
+        var scale = (screenW <= 2000) ? 2 : 1;
+    }
     
     return {
-        width: screenW,
-        height: screenH
+        width:  screenW * scale,
+        height: screenH * scale
     };
 }
 
@@ -78,33 +96,30 @@ function CViewer(pDialog, pPanelView, imageFile) {
 
     try{
         // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
-        {
-            var win = new Window("palette", "Image Test");
+        var win = new Window("palette", "Image Test");
 
-            // boundsを定義せずに画像を追加 (なお、フォトショップでは、Invalid image dataのエラーになってしまうので実行できなかった)
-            var myImage = win.add('image', undefined, imageFile); 
+        // boundsを定義せずに画像を追加 (なお、フォトショップでは、Invalid image dataのエラーになってしまうので実行できなかった)
+        var myImage = win.add('image', undefined, imageFile); 
 
-            // ここで width にアクセスしても undefined になる可能性が高い
-            // alert(myImage.width); // undefined
+        // ここで width にアクセスしても undefined になる可能性が高い
+        // alert(myImage.width); // undefined
 
-            // layout.layout() を呼び出すことで、初めて bounds が計算される
-            win.layout.layout(true);
+        // layout.layout() を呼び出すことで、初めて bounds が計算される
+        win.layout.layout(true);
 
-            // show() または layout() の後であれば、正しい値を取得できる
-            var imageWidth   = myImage.bounds.width;      // 画像の幅
-            var imageHeight  = myImage.bounds.height;     // 画像の高さ
-            self.aspectRatio   = imageWidth / imageHeight;  // 画像の縦横比
+        // show() または layout() の後であれば、正しい値を取得できる
+        var imageWidth   = myImage.bounds.width;      // 画像の幅
+        var imageHeight  = myImage.bounds.height;     // 画像の高さ
+        self.aspectRatio = imageWidth / imageHeight;  // 画像の縦横比
 
-            win.close(); // メモリ解放のためにclose
-        }
+        win.close(); // メモリ解放のためにclose
 
         // --- モニター解像度を考慮したリサイズ ---
         {
             var screen = getScreenResolution();
-            alert("s:"+screen.width + "," +screen.height );
-             alert("p:"+imageWidth + "," +imageHeight );
-            var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
-            var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
+            var ImaseSaling = 0.25; // 画像を表示する際のスケーリング
+            var maxW = screen.width  * ImaseSaling;
+            var maxH = screen.height * ImaseSaling;
 
             // モニターからはみ出さないように調整
             var targetW = imageWidth;
@@ -120,11 +135,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
             }
 
             pDialog.preferredSize = [ targetW, targetH ];
-
-             alert("d:"+pDialog.preferredSize.width + "," +pDialog.preferredSize.height );
         }
-
-        return;
 
         // 画像読み込み
         self.uiImage = ScriptUI.newImage(imageFile);
@@ -138,6 +149,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
 
             self.m_Canvas.orientation = "column";
             self.m_Canvas.alignment = ["fill", "fill"];
+            var scaleX=2;
             self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
             // カスタム・カンバスのonDraw
