@@ -4,19 +4,10 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/01/31
+// Ver.1.0 : 2026/02/01
 
 #target illustrator
 #targetengine "main"
-
-// ScriptLanguage が未定義の場合にのみ数値を代入
-if (typeof ScriptLanguage === "undefined") {
-    var ScriptLanguage = {
-        APPLESCRIPT_LANGUAGE: 1633969203, // Mac用
-        JSCRIPT: 1246970708,             // Windows用
-        JAVASCRIPT: 1246970707           // 汎用
-    };
-}
 
 SELF = (function(){
     try {app.documents.test()}
