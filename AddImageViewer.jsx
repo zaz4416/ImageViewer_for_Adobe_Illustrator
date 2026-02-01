@@ -118,29 +118,31 @@ function CViewer(pDialog, pPanelView, imageFile) {
         // 画像読み込み
         self.uiImage = ScriptUI.newImage(imageFile);
 
-        // カスタム・カンバスを追加
-        self.m_Canvas = pPanelView.add("customview", undefined, {
-            multiline:  false,
-            scrollable: false
-        });
+        {
+            // カスタム・カンバスを追加
+            self.m_Canvas = pPanelView.add("customview", undefined, {
+                multiline:  false,
+                scrollable: false
+            });
 
-        self.m_Canvas.orientation = "column";
-        self.m_Canvas.alignment = ["fill", "fill"];
-        self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+            self.m_Canvas.orientation = "column";
+            self.m_Canvas.alignment = ["fill", "fill"];
+            self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
-        // カスタム・カンバスのonDraw
-        self.m_Canvas.onDraw = function() {
-            var canv = this;    // m_Canvasのthis
-            var g = canv.graphics;
+            // カスタム・カンバスのonDraw
+            self.m_Canvas.onDraw = function() {
+                var canv = this;    // m_Canvasのthis
+                var g = canv.graphics;
 
-            var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
-            var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
+                var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
+                var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
 
-            if ( self.uiImage ) {
-                // 画像をビュアーのサイズにリサイズして描画
-                g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
+                if ( self.uiImage ) {
+                    // 画像をビュアーのサイズにリサイズして描画
+                    g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
 
-                //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+                    //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+                }
             }
         }
     }
@@ -174,6 +176,8 @@ function CImageViewDLg() {
     {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
+        self.m_BtnSelectImage.onClick = function() { self.onLoadImageClick(); }
+        
        
         // ファイル選択
         // Windows用: "表示名:*.拡張子;*.拡張子"
@@ -300,6 +304,45 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
         alert( e.message );
     }
 }
+
+CImageViewDLg.prototype.onLoadImageClick = function() {
+    var  self = CImageViewDLg.self;
+    try
+    {
+        // ファイル選択
+        // Windows用: "表示名:*.拡張子;*.拡張子"
+        // Mac用: 関数によるフィルタ（または空文字）
+        var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
+            return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
+        };
+        var imageFile = File.openDialog("Select File", filter);
+
+        if ( imageFile == null ) {
+            // ファイルが選択されなかった時の処理
+            alert( LangStringsForViewer.Msg_DoNotSelectImageFile );
+            return;
+        }
+
+        // 1. m_PanelView内のコントロールを削除
+        self.m_PanelView.remove(self.m_Viewer.m_Canvas);
+
+        // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
+        self.m_PanelView.layout.layout(true);
+
+        // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
+        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+        self.m_Viewer = self.m_Viewer.Result;
+
+        // 4. レイアウトを更新
+        self.m_Dialog.layout.layout(true);
+    }
+    catch(e)
+    {
+        alert( e.message );
+    }
+}
+
+
 
 
 var _DlgViewer;   // 唯一のオブジェクト
