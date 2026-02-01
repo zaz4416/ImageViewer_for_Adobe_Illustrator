@@ -9,6 +9,12 @@
 #target illustrator
 #targetengine "main"
 
+if ( app.documents.length > 0) 
+{
+    alert("No Doucument");
+} 
+
+
 SELF = (function(){
     try {app.documents.test()}
     catch(e) {return File(e.fileName)}
@@ -26,10 +32,6 @@ var MyDictionaryForViewer = {
     Msg_Require: {
         en : "This script requires Illustrator 2020.",
         ja : "このスクリプトは Illustrator 2020以降に対応しています。"
-    },
-    Msg_DoNotSelectImageFile: {
-        en : "Do not select a image file.",
-        ja : "画像が選択されませんでした。"
     },
     Msg_UndefineGUI: {
         en : "Undefine GIU.",
@@ -174,8 +176,9 @@ function CImageViewDLg() {
        
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
     CPaletteWindow.call( this, true );
-
     var self = CImageViewDLg.self;
+
+    self.m_Viewer = null;   // ビューアは未定義状態
 
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
@@ -189,14 +192,15 @@ function CImageViewDLg() {
         // 画像ファイル選択
         var imageFile = self.GetImageFile();
 
-        // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
-        self.m_Viewer = self.m_Viewer.Result;
+        if ( imageFile !== null ) {
+            // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
+            self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = self.m_Viewer.Result;
 
-        if (self.m_Viewer === null) {
-            alert(LangStringsForViewer.Msg_CantLoadImage);
-            self.CloseDlg();
-            return;
+            if (self.m_Viewer === null) {
+                alert(LangStringsForViewer.Msg_CantLoadImage);
+                return;
+            }
         }
 
         // パラメータ変更
@@ -308,18 +312,20 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
         // 画像ファイル選択
         var imageFile = self.GetImageFile();
 
-        // 1. m_PanelView内のコントロールを削除
-        self.m_PanelView.remove(self.m_Viewer.m_Canvas);
+        if ( imageFile !== null ) {
+            // 1. m_PanelView内のコントロールを削除
+            self.m_PanelView.remove(self.m_Viewer.m_Canvas);
 
-        // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
-        self.m_PanelView.layout.layout(true);
+            // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
+            self.m_PanelView.layout.layout(true);
 
-        // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
-        self.m_Viewer = self.m_Viewer.Result;
+            // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
+            self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = self.m_Viewer.Result;
 
-        // 4. レイアウトを更新
-        self.m_Dialog.layout.layout(true);
+            // 4. レイアウトを更新
+            self.m_Dialog.layout.layout(true);
+        }
     }
     catch(e)
     {
@@ -338,7 +344,6 @@ CImageViewDLg.prototype.GetImageFile = function() {
 
     if ( imageFile == null ) {
         // ファイルが選択されなかった時の処理
-        alert( LangStringsForViewer.Msg_DoNotSelectImageFile );
         return null;
     }
 
