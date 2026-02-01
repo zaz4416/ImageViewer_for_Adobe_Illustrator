@@ -11,4 +11,7 @@ JPEG画像を表示ます。
 メニューのファイル　→ スクリプト　→ その他のスクリプトの順番に選び、
 AddImageViewer.jsxを選択してください。
 
+OSの言語に合わせてGUIの切り替えをしています。
+GUIは、ScriptUI Dialog Builderを使用して作成しました。：https://scriptui.joonas.me/
+
 ソースファイルの変更はご自由に。なお、非営利でご使用ください。
