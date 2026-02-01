@@ -9,11 +9,6 @@
 #target illustrator
 #targetengine "main"
 
-if ( app.documents.length > 0) 
-{
-    alert("No Doucument");
-} 
-
 
 SELF = (function(){
     try {app.documents.test()}
@@ -106,6 +101,8 @@ function CViewer(pDialog, pPanelView, imageFile) {
         // --- モニター解像度を考慮したリサイズ ---
         {
             var screen = getScreenResolution();
+            alert("s:"+screen.width + "," +screen.height );
+             alert("p:"+imageWidth + "," +imageHeight );
             var maxW = screen.width * 0.8; // 画面の80%を最大幅とする
             var maxH = screen.height * 0.8; // 画面の80%を最大高さとする
 
@@ -123,7 +120,11 @@ function CViewer(pDialog, pPanelView, imageFile) {
             }
 
             pDialog.preferredSize = [ targetW, targetH ];
+
+             alert("d:"+pDialog.preferredSize.width + "," +pDialog.preferredSize.height );
         }
+
+        return;
 
         // 画像読み込み
         self.uiImage = ScriptUI.newImage(imageFile);
