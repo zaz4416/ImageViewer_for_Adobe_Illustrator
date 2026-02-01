@@ -333,9 +333,8 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
         self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
         self.m_Viewer = self.m_Viewer.Result;
 
-        // 4. レイアウトを更新（これを行わないと画面上が崩れる場合があります）
-        self.m_PanelView.layout.layout(true);
-
+        // 4. レイアウトを更新
+        self.m_Dialog.layout.layout(true);
     }
     catch(e)
     {
