@@ -34,6 +34,14 @@ var MyDictionaryForViewer = {
     Msg_UndefineGUI: {
         en : "Undefine GIU.",
         ja : "GUIが未定です。"
+    },
+    Msg_CantLoadImage: {
+        en : "Can't load a images.",
+        ja : "画像を読み取れません。"
+    },
+    Msg_TtileOfSelectJpegFile: {
+        en : "Select a Jpeg file",
+        ja : "Jpegファイルをひとつ選択"
     }
 };
 
@@ -76,7 +84,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
         {
             var win = new Window("palette", "Image Test");
 
-            // boundsを定義せずに画像を追加
+            // boundsを定義せずに画像を追加 (なお、フォトショップでは、Invalid image dataのエラーになってしまうので実行できなかった)
             var myImage = win.add('image', undefined, imageFile); 
 
             // ここで width にアクセスしても undefined になる可能性が高い
@@ -178,27 +186,15 @@ function CImageViewDLg() {
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
         self.m_BtnSelectImage.onClick = function() { self.onLoadImageClick(); }
         
-       
-        // ファイル選択
-        // Windows用: "表示名:*.拡張子;*.拡張子"
-        // Mac用: 関数によるフィルタ（または空文字）
-        var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
-            return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
-        };
-        var imageFile = File.openDialog("Select File", filter);
-
-        if ( imageFile == null ) {
-            // ファイルが選択されなかった時の処理
-            alert( LangStringsForViewer.Msg_DoNotSelectImageFile );
-            return;
-        }
+        // 画像ファイル選択
+        var imageFile = self.GetImageFile();
 
         // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
         self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
         self.m_Viewer = self.m_Viewer.Result;
 
         if (self.m_Viewer === null) {
-            alert("画像を読み取れません。");
+            alert(LangStringsForViewer.Msg_CantLoadImage);
             self.CloseDlg();
             return;
         }
@@ -309,19 +305,8 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
     var  self = CImageViewDLg.self;
     try
     {
-        // ファイル選択
-        // Windows用: "表示名:*.拡張子;*.拡張子"
-        // Mac用: 関数によるフィルタ（または空文字）
-        var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
-            return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
-        };
-        var imageFile = File.openDialog("Select File", filter);
-
-        if ( imageFile == null ) {
-            // ファイルが選択されなかった時の処理
-            alert( LangStringsForViewer.Msg_DoNotSelectImageFile );
-            return;
-        }
+        // 画像ファイル選択
+        var imageFile = self.GetImageFile();
 
         // 1. m_PanelView内のコントロールを削除
         self.m_PanelView.remove(self.m_Viewer.m_Canvas);
@@ -342,6 +327,23 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
     }
 }
 
+CImageViewDLg.prototype.GetImageFile = function() {
+    // ファイル選択
+    // Windows用: "表示名:*.拡張子;*.拡張子"
+    // Mac用: 関数によるフィルタ（または空文字）
+    var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
+        return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
+    };
+    var imageFile = File.openDialog(LangStringsForViewer.Msg_TtileOfSelectJpegFile, filter);
+
+    if ( imageFile == null ) {
+        // ファイルが選択されなかった時の処理
+        alert( LangStringsForViewer.Msg_DoNotSelectImageFile );
+        return null;
+    }
+
+    return imageFile;
+}
 
 
 
