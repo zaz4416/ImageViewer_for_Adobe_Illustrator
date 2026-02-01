@@ -34,6 +34,10 @@ var MyDictionaryForViewer = {
     Msg_UndefineGUI: {
         en : "Undefine GIU.",
         ja : "GUIが未定です。"
+    },
+    Msg_CantLoadImage: {
+        en : "Can't load a images.",
+        ja : "画像を読み取れません。"
     }
 };
 
@@ -198,7 +202,7 @@ function CImageViewDLg() {
         self.m_Viewer = self.m_Viewer.Result;
 
         if (self.m_Viewer === null) {
-            alert("画像を読み取れません。");
+            alert(LangStringsForViewer.Msg_CantLoadImage);
             self.CloseDlg();
             return;
         }
