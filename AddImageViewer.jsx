@@ -195,17 +195,25 @@ function CImageViewDLg() {
         
         // 画像ファイル選択
         var imageFile = self.GetImageFile();
-
-        if ( imageFile !== null ) {
-            // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
-            self.m_Viewer = self.m_Viewer.Result;
-
-            if (self.m_Viewer === null) {
-                alert(LangStringsForViewer.Msg_CantLoadImage);
-                return;
-            }
+        if ( imageFile === null ) {
+            return;
         }
+        
+        // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
+        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+        self.m_Viewer = self.m_Viewer.Result;
+
+        if ( self.m_Viewer === null ) {
+            alert(LangStringsForViewer.Msg_CantLoadImage);
+            return;
+        } 
+
+        // カスタム・カンバスのmousedown
+        self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
+            var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+            // event.button は左クリックで 0、中央で 1、右で 2 を返す
+            //alert(Sz);
+        });
 
         // パラメータ変更
         self.m_Dialog.opacity = 1.0;   // 不透明度  
@@ -225,16 +233,6 @@ function CImageViewDLg() {
 
     // onResizing サイズ変更中に呼び出される
     self.isResizing = false; // 無限ループ防止フラグ
-
-    if ( self.m_Viewer !== null ) {
-        // カスタム・カンバスのmousedown
-        self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
-            var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
-            // event.button は左クリックで 0、中央で 1、右で 2 を返す
-            //alert(Sz);
-        });
-    }
-
 }
 
 ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
