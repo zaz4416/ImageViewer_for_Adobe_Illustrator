@@ -174,6 +174,8 @@ function CImageViewDLg() {
     {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
+        self.m_BtnSelectImage.onClick = function() { self.onLoadImageClick(); }
+        
        
         // ファイル選択
         // Windows用: "表示名:*.拡張子;*.拡張子"
@@ -300,6 +302,20 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
         alert( e.message );
     }
 }
+
+CImageViewDLg.prototype.onLoadImageClick = function() {
+    var  self = CImageViewDLg.self;
+    try
+    {
+        alert("画像読み込み");
+    }
+    catch(e)
+    {
+        alert( e.message );
+    }
+}
+
+
 
 
 var _DlgViewer;   // 唯一のオブジェクト
