@@ -92,8 +92,6 @@ function CViewer(pDialog, pPanelView, imageFile) {
     try{
 
         var ISize = self.getImageSize(imageFile);
-
-        // show() または layout() の後であれば、正しい値を取得できる
         var imageWidth   = ISize.width;      // 画像の幅
         var imageHeight  = ISize.height;     // 画像の高さ
         self.aspectRatio = ISize.ratio;      // 画像の縦横比
@@ -154,6 +152,29 @@ function CViewer(pDialog, pPanelView, imageFile) {
                     //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
                 }
             }
+
+            // カスタム・カンバスのmousedown
+            self.m_Canvas.addEventListener("mousedown", function(event) {
+                var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+
+                // event.button は左クリックで 0、中央で 1、右で 2 を返す
+                //alert(Sz);
+
+                switch (event.button) {
+                    case 0:
+                        // 左クリック
+                        break;
+                    case 1:
+                        // 中央（ホイール）クリック
+                        break;
+                    case 2:
+                        // 右クリック
+                        self.showContextMenu(event); // メニュー表示へ
+                        break;
+                    default:
+                        break;
+                }
+            });
         }
     }
     catch(e)
@@ -203,6 +224,53 @@ CViewer.prototype.getImageSize = function(imageFile) {
     return result;
 };
 
+
+/**
+ * 右クリックメニューの構築と表示
+ */
+CViewer.prototype.showContextMenu = function(event) {
+
+    var  self = CImageViewDLg.self;
+
+    // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
+    var menuWin = new Window("palette", undefined, undefined, {borderless: true});
+    menuWin.orientation = "column";
+    menuWin.alignChildren = "fill";
+    menuWin.spacing = 0;
+    menuWin.margins = 2; // 境界線
+
+    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+    var btnProp  = menuWin.add("button", undefined, "画像読み込み");
+    var btnReset = menuWin.add("button", undefined, "サイズをリセット(&R)");
+
+    // 3. 表示位置の決定（マウスのクリック位置を計算）
+    // event から座標を取得し、スクリーン座標へ変換
+    var posX = event.screenX;
+    var posY = event.screenY;
+    menuWin.location = [posX, posY];
+
+    // 4. イベント処理
+    btnProp.onClick = function() {
+        menuWin.close();
+        self.onLoadImageClick();
+        // self.showPropertyDialog();
+    };
+
+    btnReset.onClick = function() {
+        menuWin.close();
+        alert("リセットを実行します");
+        // self.onResetSize();
+    };
+
+    // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+    menuWin.onDeactivate = function() {
+        menuWin.close();
+    };
+
+    menuWin.show();
+};
+
+
 //-----------------------------------
 // クラス CImageViewDLg
 //-----------------------------------
@@ -239,30 +307,6 @@ function CImageViewDLg() {
             alert(LangStringsForViewer.Msg_CantLoadImage);
             return;
         } 
-
-        // カスタム・カンバスのmousedown
-        self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
-            var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
-
-            // event.button は左クリックで 0、中央で 1、右で 2 を返す
-            //alert(Sz);
-
-            switch (event.button) {
-                case 0:
-                    // 左クリック
-                    break;
-                case 1:
-                    // 中央（ホイール）クリック
-                    break;
-                case 2:
-                    // 右クリック
-                    alert("migi");
-                    self.showContextMenu(event); // メニュー表示へ
-                    break;
-                default:
-                    break;
-            }
-        });
 
         // パラメータ変更
         self.m_Dialog.opacity = 1.0;   // 不透明度  
@@ -404,51 +448,6 @@ CImageViewDLg.prototype.GetImageFile = function() {
     return imageFile;
 }
 
-
-/**
- * 右クリックメニューの構築と表示
- */
-CImageViewDLg.prototype.showContextMenu = function(event) {
-
-    var  self = CImageViewDLg.self;
-
-    // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
-    var menuWin = new Window("palette", undefined, undefined, {borderless: true});
-    menuWin.orientation = "column";
-    menuWin.alignChildren = "fill";
-    menuWin.spacing = 0;
-    menuWin.margins = 2; // 境界線
-
-    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-    var btnProp  = menuWin.add("button", undefined, "画像読み込み");
-    var btnReset = menuWin.add("button", undefined, "サイズをリセット(&R)");
-
-    // 3. 表示位置の決定（マウスのクリック位置を計算）
-    // event から座標を取得し、スクリーン座標へ変換
-    var posX = event.screenX;
-    var posY = event.screenY;
-    menuWin.location = [posX, posY];
-
-    // 4. イベント処理
-    btnProp.onClick = function() {
-        menuWin.close();
-        self.onLoadImageClick();
-        // self.showPropertyDialog();
-    };
-
-    btnReset.onClick = function() {
-        menuWin.close();
-        alert("リセットを実行します");
-        // self.onResetSize();
-    };
-
-    // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
-    menuWin.onDeactivate = function() {
-        menuWin.close();
-    };
-
-    menuWin.show();
-};
 
 
 var _DlgViewer;   // 唯一のオブジェクト
