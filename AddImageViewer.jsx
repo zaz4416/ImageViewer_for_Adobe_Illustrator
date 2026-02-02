@@ -75,6 +75,10 @@ function getScreenResolution() {
 }
 
 
+
+ var xxx=0;
+
+
 //-----------------------------------
 // クラス CViewer
 //-----------------------------------
@@ -86,24 +90,16 @@ function CViewer(pDialog, pPanelView, imageFile) {
     self.Result = null;
 
     try{
-        // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
-        var win = new Window("palette", "Image Test");
 
-        // boundsを定義せずに画像を追加 (なお、フォトショップでは、Invalid image dataのエラーになってしまうので実行できなかった)
-        var myImage = win.add('image', undefined, imageFile); 
-
-        // ここで width にアクセスしても undefined になる可能性が高い
-        // alert(myImage.width); // undefined
-
-        // layout.layout() を呼び出すことで、初めて bounds が計算される
-        win.layout.layout(true);
+        var ISize = self.getImageSize(imageFile);
 
         // show() または layout() の後であれば、正しい値を取得できる
-        var imageWidth   = myImage.bounds.width;      // 画像の幅
-        var imageHeight  = myImage.bounds.height;     // 画像の高さ
-        self.aspectRatio = imageWidth / imageHeight;  // 画像の縦横比
+        var imageWidth   = ISize.width;      // 画像の幅
+        var imageHeight  = ISize.height;     // 画像の高さ
+        self.aspectRatio = ISize.ratio;      // 画像の縦横比
 
-        win.close(); // メモリ解放のためにclose
+        //if(xxx>0)return;
+        xxx = xxx + 1;
 
         // --- モニター解像度を考慮したリサイズ ---
         {
@@ -171,6 +167,42 @@ function CViewer(pDialog, pPanelView, imageFile) {
 }
 
 
+/**
+ * 画像のオリジナルサイズを取得する（Photoshop/Illustrator両対応）
+ */
+CViewer.prototype.getImageSize = function(imageFile) {
+    var self = this;
+    var result = { width: 100, height: 100, ratio: 1 }; // フォールバック
+
+    try {
+        // Photoshopの場合、ScriptUIに頼らずapp.openせずにサイズを得る方法を優先
+        if (BridgeTalk.appName === "photoshop") {
+            // Photoshop特有の、高速な画像メタデータ取得が必要な場合はここ
+            // 今回はScriptUIでの解決を試みる
+        }
+
+        var win = new Window("palette", "Size Checker");
+        // PSでのエラー回避: Fileオブジェクトを直接渡す前にパスを確認
+        var myImage = win.add('image', undefined, File(imageFile.fullName)); 
+
+        // 強制的に計算を実行
+        win.layout.layout(true);
+
+        if (myImage.bounds.width > 0) {
+            result.width  = myImage.bounds.width;
+            result.height = myImage.bounds.height;
+            result.ratio  = result.width / result.height;
+        }
+        
+        win.close();
+    } catch (e) {
+        // エラー時のデフォルト値
+        $.writeln("Image Load Error: " + e.message);
+    }
+    
+    return result;
+};
+
 //-----------------------------------
 // クラス CImageViewDLg
 //-----------------------------------
@@ -224,6 +256,7 @@ function CImageViewDLg() {
                     break;
                 case 2:
                     // 右クリック
+                    alert("migi");
                     self.showContextMenu(event); // メニュー表示へ
                     break;
                 default:
