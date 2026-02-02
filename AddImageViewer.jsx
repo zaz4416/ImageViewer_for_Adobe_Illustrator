@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/02/01
+// Ver.1.0 : 2026/02/02
 
 #target illustrator
 #targetengine "main"
@@ -211,8 +211,24 @@ function CImageViewDLg() {
         // カスタム・カンバスのmousedown
         self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
             var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+
             // event.button は左クリックで 0、中央で 1、右で 2 を返す
             //alert(Sz);
+
+            switch (event.button) {
+                case 0:
+                    // 左クリック
+                    break;
+                case 1:
+                    // 中央（ホイール）クリック
+                    break;
+                case 2:
+                    // 右クリック
+                    self.showContextMenu(event); // メニュー表示へ
+                    break;
+                default:
+                    break;
+            }
         });
 
         // パラメータ変更
@@ -355,6 +371,51 @@ CImageViewDLg.prototype.GetImageFile = function() {
     return imageFile;
 }
 
+
+/**
+ * 右クリックメニューの構築と表示
+ */
+CImageViewDLg.prototype.showContextMenu = function(event) {
+
+    var  self = CImageViewDLg.self;
+
+    // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
+    var menuWin = new Window("palette", undefined, undefined, {borderless: true});
+    menuWin.orientation = "column";
+    menuWin.alignChildren = "fill";
+    menuWin.spacing = 0;
+    menuWin.margins = 2; // 境界線
+
+    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+    var btnProp  = menuWin.add("button", undefined, "画像読み込み");
+    var btnReset = menuWin.add("button", undefined, "サイズをリセット(&R)");
+
+    // 3. 表示位置の決定（マウスのクリック位置を計算）
+    // event から座標を取得し、スクリーン座標へ変換
+    var posX = event.screenX;
+    var posY = event.screenY;
+    menuWin.location = [posX, posY];
+
+    // 4. イベント処理
+    btnProp.onClick = function() {
+        menuWin.close();
+        self.onLoadImageClick();
+        // self.showPropertyDialog();
+    };
+
+    btnReset.onClick = function() {
+        menuWin.close();
+        alert("リセットを実行します");
+        // self.onResetSize();
+    };
+
+    // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+    menuWin.onDeactivate = function() {
+        menuWin.close();
+    };
+
+    menuWin.show();
+};
 
 
 var _DlgViewer;   // 唯一のオブジェクト
