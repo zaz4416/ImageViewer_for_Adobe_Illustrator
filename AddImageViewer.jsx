@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/02/01
+// Ver.1.0 : 2026/02/02
 
 #target illustrator
 #targetengine "main"
@@ -38,6 +38,14 @@ var MyDictionaryForViewer = {
     Msg_TtileOfSelectJpegFile: {
         en : "Select a Jpeg file",
         ja : "Jpegファイルをひとつ選択"
+    },
+     Menu_LoadImage: {
+        en : "Load image",
+        ja : "画像読み込み"
+    },
+     Menu_ResetImageSize: {
+        en : "Reset image size",
+        ja : "画像サイズをリセット"
     }
 };
 
@@ -74,7 +82,6 @@ function getScreenResolution() {
     };
 }
 
-
 //-----------------------------------
 // クラス CViewer
 //-----------------------------------
@@ -86,24 +93,10 @@ function CViewer(pDialog, pPanelView, imageFile) {
     self.Result = null;
 
     try{
-        // 画像のサイズを得るために、仮のダイアログを作成して画像を表示させ、この更新結果を利用して、画像サイズを得る
-        var win = new Window("palette", "Image Test");
-
-        // boundsを定義せずに画像を追加 (なお、フォトショップでは、Invalid image dataのエラーになってしまうので実行できなかった)
-        var myImage = win.add('image', undefined, imageFile); 
-
-        // ここで width にアクセスしても undefined になる可能性が高い
-        // alert(myImage.width); // undefined
-
-        // layout.layout() を呼び出すことで、初めて bounds が計算される
-        win.layout.layout(true);
-
-        // show() または layout() の後であれば、正しい値を取得できる
-        var imageWidth   = myImage.bounds.width;      // 画像の幅
-        var imageHeight  = myImage.bounds.height;     // 画像の高さ
-        self.aspectRatio = imageWidth / imageHeight;  // 画像の縦横比
-
-        win.close(); // メモリ解放のためにclose
+        var ISize = self.getImageSize(imageFile);
+        var imageWidth   = ISize.width;      // 画像の幅
+        var imageHeight  = ISize.height;     // 画像の高さ
+        self.aspectRatio = ISize.ratio;      // 画像の縦横比
 
         // --- モニター解像度を考慮したリサイズ ---
         {
@@ -158,6 +151,29 @@ function CViewer(pDialog, pPanelView, imageFile) {
                     //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
                 }
             }
+
+            // カスタム・カンバスのmousedown
+            self.m_Canvas.addEventListener("mousedown", function(event) {
+                var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+
+                // event.button は左クリックで 0、中央で 1、右で 2 を返す
+                //alert(Sz);
+
+                switch (event.button) {
+                    case 0:
+                        // 左クリック
+                        break;
+                    case 1:
+                        // 中央（ホイール）クリック
+                        break;
+                    case 2:
+                        // 右クリック
+                        self.showContextMenu(event); // メニュー表示へ
+                        break;
+                    default:
+                        break;
+                }
+            });
         }
     }
     catch(e)
@@ -169,6 +185,88 @@ function CViewer(pDialog, pPanelView, imageFile) {
     self.Result = self;
     return self;
 }
+
+
+/**
+ * 画像のオリジナルサイズを取得する（Photoshop/Illustrator両対応）
+ */
+CViewer.prototype.getImageSize = function(imageFile) {
+    var self = this;
+    var result = { width: 100, height: 100, ratio: 1 }; // フォールバック
+
+    try {
+        // Photoshopの場合、ScriptUIに頼らずapp.openせずにサイズを得る方法を優先
+        if (BridgeTalk.appName === "photoshop") {
+            // Photoshop特有の、高速な画像メタデータ取得が必要な場合はここ
+            // 今回はScriptUIでの解決を試みる
+        }
+
+        var win = new Window("palette", "Size Checker");
+        // PSでのエラー回避: Fileオブジェクトを直接渡す前にパスを確認
+        var myImage = win.add('image', undefined, File(imageFile.fullName)); 
+
+        // 強制的に計算を実行
+        win.layout.layout(true);
+
+        if (myImage.bounds.width > 0) {
+            result.width  = myImage.bounds.width;
+            result.height = myImage.bounds.height;
+            result.ratio  = result.width / result.height;
+        }
+        
+        win.close();
+    } catch (e) {
+        // エラー時のデフォルト値
+        $.writeln("Image Load Error: " + e.message);
+    }
+    
+    return result;
+};
+
+
+/**
+ * 右クリックメニューの構築と表示
+ */
+CViewer.prototype.showContextMenu = function(event) {
+
+    var  self = CImageViewDLg.self;
+
+    // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
+    var menuWin = new Window("palette", undefined, undefined, {borderless: true});
+    menuWin.orientation = "column";
+    menuWin.alignChildren = "fill";
+    menuWin.spacing = 0;
+    menuWin.margins = 2; // 境界線
+
+    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+    var BtnMenu_LoadImage   = menuWin.add("button", undefined, LangStringsForViewer.Menu_LoadImage);
+    var BtnMenu_ResetImage  = menuWin.add("button", undefined, LangStringsForViewer.Menu_ResetImageSize);
+
+    // 3. 表示位置の決定（マウスのクリック位置を計算）
+    // event から座標を取得し、スクリーン座標へ変換
+    var posX = event.screenX;
+    var posY = event.screenY;
+    menuWin.location = [posX, posY];
+
+    // 4. イベント処理
+    BtnMenu_LoadImage.onClick = function() {
+        menuWin.close();
+        self.onLoadImageClick();
+        // self.showPropertyDialog();
+    };
+
+    BtnMenu_ResetImage.onClick = function() {
+        menuWin.close();
+        // self.onResetSize();
+    };
+
+    // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+    menuWin.onDeactivate = function() {
+        menuWin.close();
+    };
+
+    menuWin.show();
+};
 
 
 //-----------------------------------
@@ -207,13 +305,6 @@ function CImageViewDLg() {
             alert(LangStringsForViewer.Msg_CantLoadImage);
             return;
         } 
-
-        // カスタム・カンバスのmousedown
-        self.m_Viewer.m_Canvas.addEventListener("mousedown", function(event) {
-            var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
-            // event.button は左クリックで 0、中央で 1、右で 2 を返す
-            //alert(Sz);
-        });
 
         // パラメータ変更
         self.m_Dialog.opacity = 1.0;   // 不透明度  
