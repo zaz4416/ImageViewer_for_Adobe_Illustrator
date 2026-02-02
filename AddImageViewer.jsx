@@ -38,6 +38,14 @@ var MyDictionaryForViewer = {
     Msg_TtileOfSelectJpegFile: {
         en : "Select a Jpeg file",
         ja : "Jpegファイルをひとつ選択"
+    },
+     Menu_LoadImage: {
+        en : "Load image",
+        ja : "画像読み込み"
+    },
+     Menu_ResetImageSize: {
+        en : "Reset image size",
+        ja : "画像サイズをリセット"
     }
 };
 
@@ -74,11 +82,6 @@ function getScreenResolution() {
     };
 }
 
-
-
- var xxx=0;
-
-
 //-----------------------------------
 // クラス CViewer
 //-----------------------------------
@@ -90,14 +93,10 @@ function CViewer(pDialog, pPanelView, imageFile) {
     self.Result = null;
 
     try{
-
         var ISize = self.getImageSize(imageFile);
         var imageWidth   = ISize.width;      // 画像の幅
         var imageHeight  = ISize.height;     // 画像の高さ
         self.aspectRatio = ISize.ratio;      // 画像の縦横比
-
-        //if(xxx>0)return;
-        xxx = xxx + 1;
 
         // --- モニター解像度を考慮したリサイズ ---
         {
@@ -240,8 +239,8 @@ CViewer.prototype.showContextMenu = function(event) {
     menuWin.margins = 2; // 境界線
 
     // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-    var btnProp  = menuWin.add("button", undefined, "画像読み込み");
-    var btnReset = menuWin.add("button", undefined, "サイズをリセット(&R)");
+    var BtnMenu_LoadImage   = menuWin.add("button", undefined, LangStringsForViewer.Menu_LoadImage);
+    var BtnMenu_ResetImage  = menuWin.add("button", undefined, LangStringsForViewer.Menu_ResetImageSize);
 
     // 3. 表示位置の決定（マウスのクリック位置を計算）
     // event から座標を取得し、スクリーン座標へ変換
@@ -250,15 +249,14 @@ CViewer.prototype.showContextMenu = function(event) {
     menuWin.location = [posX, posY];
 
     // 4. イベント処理
-    btnProp.onClick = function() {
+    BtnMenu_LoadImage.onClick = function() {
         menuWin.close();
         self.onLoadImageClick();
         // self.showPropertyDialog();
     };
 
-    btnReset.onClick = function() {
+    BtnMenu_ResetImage.onClick = function() {
         menuWin.close();
-        alert("リセットを実行します");
         // self.onResetSize();
     };
 
