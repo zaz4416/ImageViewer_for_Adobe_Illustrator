@@ -232,17 +232,13 @@ CViewer.prototype.showContextMenu = function(event) {
     var self = CImageViewDLg.self;
 
     // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
-    var menuWin = new CPopMenu();
-    
-    // 2. 表示位置の決定（マウスのクリック位置を計算）
-    // event から座標を取得し、スクリーン座標へ変換
-    menuWin.location(event.screenX, event.screenY);
+    var menuWin = new CPopMenu( event.screenX, event.screenY );
 
-    // 3. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-    var BtnMenu_LoadImage   = menuWin.AddtMenu(LangStringsForViewer.Menu_LoadImage,     self.onLoadImageClick );
-    var BtnMenu_ResetImage  = menuWin.AddtMenu(LangStringsForViewer.Menu_ResetImageSize);
+    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+    menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage,     self.onLoadImageClick );
+    menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
 
-    // 4. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+    // 3. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
     menuWin.onDeactivate = function() { menuWin.close(); }
     menuWin.show();
 }
@@ -254,12 +250,18 @@ CViewer.prototype.showContextMenu = function(event) {
 
 // コンストラクタ
 
-function CPopMenu() {
-    this.m_Menu = new Window("palette", undefined, undefined, {borderless: true});
-    this.m_Menu.orientation = "column";
-    this.m_Menu.alignChildren = "fill";
-    this.m_Menu.spacing = 0;
-    this.m_Menu.margins = 2; // 境界線
+function CPopMenu( posX, posY ) {
+    var self = this;
+
+    self.m_Menu = new Window("palette", undefined, undefined, {borderless: true});
+    self.m_Menu.orientation = "column";
+    self.m_Menu.alignChildren = "fill";
+    self.m_Menu.spacing = 0;
+    self.m_Menu.margins = 2; // 境界線
+
+    // 表示位置の決定（マウスのクリック位置を計算）
+    // event から座標を取得し、スクリーン座標へ変換
+    self.m_Menu.location = [posX, posY];
 }
 
 CPopMenu.prototype.AddtMenu = function(MenuString, func) {
@@ -292,10 +294,6 @@ CPopMenu.prototype.show = function() {
 
 CPopMenu.prototype.close = function() {
     return this.m_Menu.close();
-}
-
-CPopMenu.prototype.location = function(posX, posY) {
-    this.m_Menu.location = [posX, posY];
 }
 
 
