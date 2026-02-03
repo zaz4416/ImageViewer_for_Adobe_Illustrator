@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/02/02
+// Ver.1.0 : 2026/02/03
 
 #target illustrator
 #targetengine "main"
@@ -232,41 +232,73 @@ CViewer.prototype.showContextMenu = function(event) {
     var  self = CImageViewDLg.self;
 
     // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
-    var menuWin = new Window("palette", undefined, undefined, {borderless: true});
-    menuWin.orientation = "column";
-    menuWin.alignChildren = "fill";
-    menuWin.spacing = 0;
-    menuWin.margins = 2; // 境界線
+    var menuWin = new CPopMenu();
+    {
+        // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+        var BtnMenu_LoadImage   = menuWin.AddtMenu(LangStringsForViewer.Menu_LoadImage     );
+        var BtnMenu_ResetImage  = menuWin.AddtMenu(LangStringsForViewer.Menu_ResetImageSize);
 
-    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-    var BtnMenu_LoadImage   = menuWin.add("button", undefined, LangStringsForViewer.Menu_LoadImage);
-    var BtnMenu_ResetImage  = menuWin.add("button", undefined, LangStringsForViewer.Menu_ResetImageSize);
+        // 3. 表示位置の決定（マウスのクリック位置を計算）
+        // event から座標を取得し、スクリーン座標へ変換
+        menuWin.location(event.screenX, event.screenY);
 
-    // 3. 表示位置の決定（マウスのクリック位置を計算）
-    // event から座標を取得し、スクリーン座標へ変換
-    var posX = event.screenX;
-    var posY = event.screenY;
-    menuWin.location = [posX, posY];
+        // 4. イベント処理
+        BtnMenu_LoadImage.onClick = function() {
+            menuWin.close();
+            self.onLoadImageClick();
+        };
 
-    // 4. イベント処理
-    BtnMenu_LoadImage.onClick = function() {
-        menuWin.close();
-        self.onLoadImageClick();
-        // self.showPropertyDialog();
-    };
+        BtnMenu_ResetImage.onClick = function() {
+            menuWin.close();
+            // self.onResetSize();
+        };
 
-    BtnMenu_ResetImage.onClick = function() {
-        menuWin.close();
-        // self.onResetSize();
-    };
+        // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+        menuWin.onDeactivate = function() {
+            menuWin.close();
+        };
 
-    // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
-    menuWin.onDeactivate = function() {
-        menuWin.close();
-    };
+        menuWin.show();
+    }
 
-    menuWin.show();
-};
+}
+
+
+//-----------------------------------
+// クラス CPopMenu
+//-----------------------------------
+
+// コンストラクタ
+
+function CPopMenu() {
+    this.m_Menu = new Window("palette", undefined, undefined, {borderless: true});
+    this.m_Menu.orientation = "column";
+    this.m_Menu.alignChildren = "fill";
+    this.m_Menu.spacing = 0;
+    this.m_Menu.margins = 2; // 境界線
+}
+
+CPopMenu.prototype.AddtMenu = function(MenuString) {
+    return this.m_Menu.add("button", undefined, MenuString);
+}
+
+CPopMenu.prototype.GeDC = function() {
+    return this.m_Menu;
+}
+
+CPopMenu.prototype.show = function() {
+    return this.m_Menu.show();
+}
+
+CPopMenu.prototype.close = function() {
+    return this.m_Menu.close();
+}
+
+CPopMenu.prototype.location = function(posX, posY) {
+    this.m_Menu.location = [posX, posY];
+}
+
+
 
 
 //-----------------------------------
