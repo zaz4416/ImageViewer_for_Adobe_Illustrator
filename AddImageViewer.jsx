@@ -238,8 +238,7 @@ CViewer.prototype.showContextMenu = function(event) {
     menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage,     self.onLoadImageClick );
     menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
 
-    // 3. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
-    menuWin.onDeactivate = function() { menuWin.close(); }
+    // 3. メニューを表示
     menuWin.show();
 }
 
@@ -262,10 +261,12 @@ function CPopMenu( posX, posY ) {
     // 表示位置の決定（マウスのクリック位置を計算）
     // event から座標を取得し、スクリーン座標へ変換
     self.m_Menu.location = [posX, posY];
+
+    // フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+    self.m_Menu.onDeactivate = function() { self.m_Menu.close(); }
 }
 
 CPopMenu.prototype.AddtMenu = function(MenuString, func) {
-
     var self = this;
     var btn = null;
 
@@ -284,16 +285,8 @@ CPopMenu.prototype.AddtMenu = function(MenuString, func) {
     return btn;
 }
 
-CPopMenu.prototype.GeDC = function() {
-    return this.m_Menu;
-}
-
 CPopMenu.prototype.show = function() {
     return this.m_Menu.show();
-}
-
-CPopMenu.prototype.close = function() {
-    return this.m_Menu.close();
 }
 
 
