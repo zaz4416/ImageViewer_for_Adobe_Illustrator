@@ -229,38 +229,22 @@ CViewer.prototype.getImageSize = function(imageFile) {
  */
 CViewer.prototype.showContextMenu = function(event) {
 
-    var  self = CImageViewDLg.self;
+    var self = CImageViewDLg.self;
 
     // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
     var menuWin = new CPopMenu();
-    {
-        // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-        var BtnMenu_LoadImage   = menuWin.AddtMenu(LangStringsForViewer.Menu_LoadImage     );
-        var BtnMenu_ResetImage  = menuWin.AddtMenu(LangStringsForViewer.Menu_ResetImageSize);
+    
+    // 2. 表示位置の決定（マウスのクリック位置を計算）
+    // event から座標を取得し、スクリーン座標へ変換
+    menuWin.location(event.screenX, event.screenY);
 
-        // 3. 表示位置の決定（マウスのクリック位置を計算）
-        // event から座標を取得し、スクリーン座標へ変換
-        menuWin.location(event.screenX, event.screenY);
+    // 3. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+    var BtnMenu_LoadImage   = menuWin.AddtMenu(LangStringsForViewer.Menu_LoadImage,     self.onLoadImageClick );
+    var BtnMenu_ResetImage  = menuWin.AddtMenu(LangStringsForViewer.Menu_ResetImageSize);
 
-        // 4. イベント処理
-        BtnMenu_LoadImage.onClick = function() {
-            menuWin.close();
-            self.onLoadImageClick();
-        };
-
-        BtnMenu_ResetImage.onClick = function() {
-            menuWin.close();
-            // self.onResetSize();
-        };
-
-        // 5. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
-        menuWin.onDeactivate = function() {
-            menuWin.close();
-        };
-
-        menuWin.show();
-    }
-
+    // 4. フォーカスが外れたら（メニュー外をクリックしたら）閉じる
+    menuWin.onDeactivate = function() { menuWin.close(); }
+    menuWin.show();
 }
 
 
@@ -278,8 +262,24 @@ function CPopMenu() {
     this.m_Menu.margins = 2; // 境界線
 }
 
-CPopMenu.prototype.AddtMenu = function(MenuString) {
-    return this.m_Menu.add("button", undefined, MenuString);
+CPopMenu.prototype.AddtMenu = function(MenuString, func) {
+
+    var self = this;
+    var btn = null;
+
+    try{
+        btn = self.m_Menu.add("button", undefined, MenuString);
+        btn.onClick = function() {
+            self.m_Menu.close();
+            if (typeof func === "function") func();
+        };
+    }
+    catch(e)
+    {
+        alert( e.message );
+    }
+
+    return btn;
 }
 
 CPopMenu.prototype.GeDC = function() {
@@ -297,8 +297,6 @@ CPopMenu.prototype.close = function() {
 CPopMenu.prototype.location = function(posX, posY) {
     this.m_Menu.location = [posX, posY];
 }
-
-
 
 
 //-----------------------------------
