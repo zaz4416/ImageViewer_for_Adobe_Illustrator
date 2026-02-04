@@ -9,13 +9,13 @@
 #target illustrator
 #targetengine "main"
 
-SELF = (function(){
-    try {app.documents.test()}
-    catch(e) {return File(e.fileName)}
+var SELF_FILE = (function() {
+try { var path = $.fileName || Folder.current.fullName; return new File(decodeURI(path)); } catch (e) { return null; }
 })();
+var SCRIPT_DIR = (SELF_FILE !== null) ? SELF_FILE.parent : Folder.current;
 
 // 外部のJSXを読み込む
-$.evalFile(SELF.path + "/ZazLib/" + "PaletteWindow.jsx");
+$.evalFile(SCRIPT_DIR + "/ZazLib/" + "PaletteWindow.jsx");
 
 // 言語ごとの辞書を定義
 var MyDictionaryForViewer = {
