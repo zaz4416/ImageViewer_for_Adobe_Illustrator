@@ -311,7 +311,7 @@ function CImageViewDLg() {
     // GUI用のスクリプトを読み込む
     var selfFile = new File($.fileName);
     var currentDir = selfFile.parent;
-    if ( self.LoadGUIfromJSX( currentDir.fullName + "/GUI.Panele_ImageViewer/" + LangStringsForViewer.GUI_JSX ) )
+    if ( self.LoadGUIfromJSX( currentDir.fullName + "/GUI/Panele_ImageViewer/" + LangStringsForViewer.GUI_JSX ) )
     {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
