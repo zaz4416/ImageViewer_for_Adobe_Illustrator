@@ -4,7 +4,7 @@
 </javascriptresource>
 */
 
-// Ver.1.0 : 2026/02/03
+// Ver.1.0 : 2026/02/04
 
 #target illustrator
 #targetengine "main"
@@ -140,6 +140,11 @@ function CViewer(pDialog, pPanelView, imageFile) {
             self.m_Canvas.onDraw = function() {
                 var canv = this;    // m_Canvasのthis
                 var g = canv.graphics;
+
+                // 背景を白で塗りつぶす処理
+                var whiteBrush = g.newBrush(g.BrushType.SOLID_COLOR, [1.0, 1.0, 1.0, 1.0]); // [R, G, B, A]
+                g.rectPath(0, 0, canv.size.width, canv.size.height);
+                g.fillPath(whiteBrush);
 
                 var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
                 var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
@@ -451,20 +456,59 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
 }
 
 CImageViewDLg.prototype.GetImageFile = function() {
-    // ファイル選択
-    // Windows用: "表示名:*.拡張子;*.拡張子"
-    // Mac用: 関数によるフィルタ（または空文字）
-    var filter = (File.fs == "Windows") ? "JPEG Files:*.jpg;*.jpeg" : function(f) {
-        return f instanceof Folder || f.name.match(/\.(jpg|jpeg)$/i);
-    };
-    var imageFile = File.openDialog(LangStringsForViewer.Msg_TtileOfSelectJpegFile, filter);
+    var isWin = (File.fs === "Windows");
+    
+    // PNGを追加したフィルタ設定
+    var filter = isWin 
+        ? "Image Files:*.jpg;*.jpeg;*.png" // Windows: セミコロンで区切って追加
+        : function(f) { 
+            // Mac: 正規表現に png を追加
+            return f instanceof Folder || f.name.match(/\.(jpg|jpeg|png)$/i); 
+        };
+
+    // ファイル選択ダイアログの表示
+    var imageFile = File.openDialog(
+        LangStringsForViewer.Msg_TtileOfSelectJpegFile, 
+        filter,
+        false // 複数選択を無効化
+    );
 
     if ( imageFile == null ) {
         // ファイルが選択されなかった時の処理
         return null;
     }
 
+    /*
+    if (imageFile && isTransparentPNG(imageFile)) {
+        alert("このPNGは透明度を持っています。");
+    } else if (imageFile) {
+        alert("不透明な画像です。");
+    }
+    */
+
     return imageFile;
+}
+
+/**
+ * PNGファイルが透明度(Alpha)を持っているか判定する
+ * @param {File} file - 判定対象のファイルオブジェクト
+ * @returns {Boolean} 透明度をサポートしていればtrue
+ */
+function isTransparentPNG(file) {
+    if (!file || !file.exists) return false;
+    if (!file.name.match(/\.png$/i)) return false; // PNG以外は除外
+
+    file.encoding = "BINARY";
+    file.open("r");
+    
+    // PNGのIHDRチャンクにあるカラータイプ(25バイト目)を読み込む
+    file.seek(25);
+    var colorType = file.read(1).charCodeAt(0);
+    file.close();
+
+    // 4: Gray+Alpha, 6: RGB+Alpha なら透明度あり
+    // 3: Indexed Color も透明パレットを持つ可能性があるため含めるのが一般的
+    return (colorType >= 3);
 }
 
 
