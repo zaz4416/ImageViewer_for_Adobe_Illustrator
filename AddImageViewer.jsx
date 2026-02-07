@@ -449,11 +449,12 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var  self = CImageViewDLg.self; // CImageViewを参照させるようにする
+    //var  self = CImageViewDLg.self; // CImageViewを参照させるようにする
+    var self = this;
     try
     {
         // 画像ファイル選択
-        var imageFile = self.GetImageFile();
+        var imageFile = self.GetImageFile();    // self = CImageViewDLg.selfの場合、右クリックでonLoadImageClickを追加する、この関数が無いことになる
 
         if ( imageFile !== null ) {
             // 1. m_PanelView内のコントロールを削除
