@@ -114,10 +114,11 @@ function getScreenResolution() {
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(pDialog, pPanelView, imageFile) {
+function CViewer(pObj, pDialog, pPanelView, imageFile) {
 
     var self = this;
     self.Result = null;
+    self.xDialog = pDialog;
 
     try{
         var ISize = self.getImageSize(imageFile);
@@ -200,7 +201,7 @@ function CViewer(pDialog, pPanelView, imageFile) {
                         break;
                     case 2:
                         // 右クリック
-                        self.showContextMenu(event); // メニュー表示へ
+                        self.showContextMenu(event, pObj); // メニュー表示へ
                         break;
                     default:
                         break;
@@ -259,19 +260,22 @@ CViewer.prototype.getImageSize = function(imageFile) {
 /**
  * 右クリックメニューの構築と表示
  */
-CViewer.prototype.showContextMenu = function(event) {
+CViewer.prototype.showContextMenu = function(event, pObj) {
+    try {
+        var GlbObj = pObj.GetDialogObject();
 
-    var self = CImageViewDLg.self;  // CImageViewDLgのonLoadImageClickを使用する
+        // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
+        var menuWin = new CPopMenu( event.screenX, event.screenY );
+        
+        // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
+        menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
+        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
 
-    // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
-    var menuWin = new CPopMenu( event.screenX, event.screenY );
-
-    // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-    menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage,     self.onLoadImageClick );
-    menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
-
-    // 3. メニューを表示
-    menuWin.show();
+        // 3. メニューを表示
+        menuWin.show();
+    } catch(e) {
+        alert( e.message );
+    }
 }
 
 
@@ -302,15 +306,13 @@ CPopMenu.prototype.AddtMenu = function(MenuString, func) {
     var self = this;
     var btn = null;
 
-    try{
+    try {
         btn = self.m_Menu.add("button", undefined, MenuString);
         btn.onClick = function() {
             self.m_Menu.close();
             if (typeof func === "function") func();
         };
-    }
-    catch(e)
-    {
+    } catch(e) {
         alert( e.message );
     }
 
@@ -349,7 +351,7 @@ function CImageViewDLg() {
         }
         
         // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-        self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+        self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
         self.m_Viewer = self.m_Viewer.Result;
 
         if ( self.m_Viewer === null ) {
@@ -386,7 +388,7 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
 // ClassInheritanceの後ろで、追加したいメソッドを定義
 CImageViewDLg.prototype.onResizing = function() {
 
-    var self  = this;
+    var self = this.GetDialogObject();
 
     if ( self.m_Viewer === null ) {
         return;
@@ -442,23 +444,20 @@ CImageViewDLg.prototype.onResizing = function() {
 
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
     var  self = this;
-    try
-    {
+    try {
         self.close();
     }
-    catch(e)
-    {
+    catch(e) {
         alert( e.message );
     }
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    //var  self = CImageViewDLg.self; // CImageViewを参照させるようにする
     var self = this;
-    try
-    {
+
+    try {
         // 画像ファイル選択
-        var imageFile = self.GetImageFile();    // self = CImageViewDLg.selfの場合、右クリックでonLoadImageClickを追加する、この関数が無いことになる
+        var imageFile = self.GetImageFile();
 
         if ( imageFile !== null ) {
             // 1. m_PanelView内のコントロールを削除
@@ -471,7 +470,7 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
             self.m_PanelView.layout.layout(true);
 
             // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             // 4. レイアウトを更新
