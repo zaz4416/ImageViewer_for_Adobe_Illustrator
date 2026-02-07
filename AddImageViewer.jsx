@@ -257,7 +257,7 @@ CViewer.prototype.getImageSize = function(imageFile) {
  */
 CViewer.prototype.showContextMenu = function(event) {
 
-    var self = CImageViewDLg.self;
+    var self = CImageViewDLg.self;  // CImageViewDLgのonLoadImageClickを使用する
 
     // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
     var menuWin = new CPopMenu( event.screenX, event.screenY );
@@ -449,7 +449,7 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var  self = this;
+    var  self = CImageViewDLg.self; // CImageViewを参照させるようにする
     try
     {
         // 画像ファイル選択
