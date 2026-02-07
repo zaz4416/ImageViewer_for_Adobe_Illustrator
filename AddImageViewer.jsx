@@ -14,6 +14,10 @@
 // 外部のJSXを読み込む
 //$.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
 
+// 外部のスクリプトを埋め込む
+#include "zazlib/PaletteWindow.jsx"
+
+
 // 言語ごとの辞書を定義
 var MyDictionaryForViewer = {
     GUI_JSX: {
