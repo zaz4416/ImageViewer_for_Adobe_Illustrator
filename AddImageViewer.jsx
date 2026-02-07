@@ -3,25 +3,22 @@
 <name>イメージ・ビューア</name>
 </javascriptresource>
 */
+/* global $ */
 
-// Ver.1.0 : 2026/02/04
+// Ver.1.0 : 2026/02/07
 
 #target illustrator
 #targetengine "main"
 
-var SELF_FILE = (function() {
-try { var path = $.fileName || Folder.current.fullName; return new File(decodeURI(path)); } catch (e) { return null; }
-})();
-var SCRIPT_DIR = (SELF_FILE !== null) ? SELF_FILE.parent : Folder.current;
 
 // 外部のJSXを読み込む
-$.evalFile(SCRIPT_DIR + "/ZazLib/" + "PaletteWindow.jsx");
+//$.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
 
 // 言語ごとの辞書を定義
 var MyDictionaryForViewer = {
     GUI_JSX: {
-        en : "ScriptUI Dialog Builder - Export_EN.jsx",
-        ja : "ScriptUI Dialog Builder - Export_JP.jsx"
+        en : "GUI/Panele_ImageViewer/ScriptUI Dialog Builder - Export_EN.jsx",
+        ja : "GUI/Panele_ImageViewer/ScriptUI Dialog Builder - Export_JP.jsx"
     },
     Msg_Require: {
         en : "This script requires Illustrator 2020.",
@@ -53,6 +50,29 @@ var MyDictionaryForViewer = {
 // --- 辞書から自動翻訳処理 ---
 var LangStringsForViewer = GetWordsFromDictionary( MyDictionaryForViewer );
 
+// オブジェクトの最大保持数
+var _MAX_INSTANCES = 5;
+
+
+// --- グローバル関数 -----------------------------------------------------------------
+
+/**
+ * 実行中スクリプトの親フォルダ（Folderオブジェクト）を返す。
+ * なお、戻り値の最後には/が付与される。
+ */
+function GetScriptDir() {
+    var selfFile = null;
+    try {
+        selfFile = new File(decodeURI($.fileName || Folder.current.fullName));
+    } catch (e) {
+        return Folder.current.fullName.replace(/\/*$/, "/");
+    }
+    var dirPath = (selfFile !== null) ? selfFile.parent.fullName : Folder.current.fullName;
+
+    // 末尾にスラッシュがなければ付与して返す
+    return dirPath.replace(/\/*$/, "/");
+}
+
 
 /**
  * メインモニターの有効な解像度（タスクバー等を除いた範囲）を取得
@@ -81,6 +101,9 @@ function getScreenResolution() {
         height: screenH * scale
     };
 }
+
+// ---------------------------------------------------------------------------------
+
 
 //-----------------------------------
 // クラス CViewer
@@ -234,7 +257,7 @@ CViewer.prototype.getImageSize = function(imageFile) {
  */
 CViewer.prototype.showContextMenu = function(event) {
 
-    var self = CImageViewDLg.self;
+    var self = CImageViewDLg.self;  // CImageViewDLgのonLoadImageClickを使用する
 
     // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
     var menuWin = new CPopMenu( event.screenX, event.screenY );
@@ -303,15 +326,13 @@ CPopMenu.prototype.show = function() {
 function CImageViewDLg() { 
        
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    CPaletteWindow.call( this, true );
-    var self = CImageViewDLg.self;
+    CPaletteWindow.call( this, _MAX_INSTANCES, true );      // コンストラクタ
+    var self = this;
 
     self.m_Viewer = null;   // ビューアは未定義状態
 
     // GUI用のスクリプトを読み込む
-    var selfFile = new File($.fileName);
-    var currentDir = selfFile.parent;
-    if ( self.LoadGUIfromJSX( currentDir.fullName + "/GUI/Panele_ImageViewer/" + LangStringsForViewer.GUI_JSX ) )
+    if ( self.LoadGUIfromJSX( GetScriptDir() + LangStringsForViewer.GUI_JSX ) )
     {
         // GUIに変更を入れる
         self.m_close.onClick = function() { self.onEndOfDialogClick(); }
@@ -333,7 +354,10 @@ function CImageViewDLg() {
         } 
 
         // パラメータ変更
-        self.m_Dialog.opacity = 1.0;   // 不透明度  
+        self.m_Dialog.opacity = 1.0;   // 不透明度 
+
+        // 最後に、新しいインスタンスを追加
+        self.RegisterInstance();
     }
     else {
         alert( LangStringsForViewer.Msg_UndefineGUI );
@@ -358,7 +382,7 @@ ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
 // ClassInheritanceの後ろで、追加したいメソッドを定義
 CImageViewDLg.prototype.onResizing = function() {
 
-    var self  = CImageViewDLg.self;
+    var self  = this;
 
     if ( self.m_Viewer === null ) {
         return;
@@ -413,10 +437,10 @@ CImageViewDLg.prototype.onResizing = function() {
 }
 
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
-    var  self = CImageViewDLg.self;
+    var  self = this;
     try
     {
-        self.CloseDlg();
+        self.close();
     }
     catch(e)
     {
@@ -425,11 +449,12 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var  self = CImageViewDLg.self;
+    //var  self = CImageViewDLg.self; // CImageViewを参照させるようにする
+    var self = this;
     try
     {
         // 画像ファイル選択
-        var imageFile = self.GetImageFile();
+        var imageFile = self.GetImageFile();    // self = CImageViewDLg.selfの場合、右クリックでonLoadImageClickを追加する、この関数が無いことになる
 
         if ( imageFile !== null ) {
             // 1. m_PanelView内のコントロールを削除
@@ -512,9 +537,6 @@ function isTransparentPNG(file) {
 }
 
 
-
-var _DlgViewer;   // 唯一のオブジェクト
-
 function main()
 {
     var appName = app.name;
@@ -525,8 +547,8 @@ function main()
     // バージョン・チェック
     if( appName === "Adobe Illustrator" && appVersion()[0]  >= 24 )
     {
-        _DlgViewer = new CImageViewDLg();
-        _DlgViewer.ShowDlg(); 
+        var Obj = new CImageViewDLg();  // 新しいインスタンスを生成
+        Obj.show();                     // インスタンスを表示
     }
     else
     {
