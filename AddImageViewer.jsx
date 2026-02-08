@@ -440,7 +440,7 @@ CImageViewDLg.prototype.onResizing = function() {
 }
 
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
-    var  self = this;
+    var  self = this.GetDialogObject();;
     try {
         self.close();
     }
@@ -450,7 +450,7 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var self = this;
+    var self = this.GetDialogObject();;
 
     try {
         // 画像ファイル選択
