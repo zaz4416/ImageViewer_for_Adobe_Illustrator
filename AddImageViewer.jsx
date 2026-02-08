@@ -11,11 +11,8 @@
 #targetengine "main"
 
 
-// 外部のJSXを読み込む
-//$.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
-
-// 外部のスクリプトを埋め込む
-#include "zazlib/PaletteWindow.jsx"
+// スクリプト実行時に外部のJSXを読み込む (#includeにすると、main関数が終了した時点で、ダイアログが表示されなくなる)
+$.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
 
 
 // 言語ごとの辞書を定義
