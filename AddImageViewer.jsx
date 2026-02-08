@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/07
+// Ver.1.0 : 2026/02/08
 
 #target illustrator
 #targetengine "main"
@@ -329,10 +329,10 @@ CPopMenu.prototype.show = function() {
 //-----------------------------------
 
 // コンストラクタ
-function CImageViewDLg() { 
+function CImageViewDLg( scriptName ) { 
        
     // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
-    CPaletteWindow.call( this, _MAX_INSTANCES, true );      // コンストラクタ
+    CPaletteWindow.call( this, scriptName, _MAX_INSTANCES, true );      // コンストラクタ
     var self = this;
 
     self.m_Viewer = null;   // ビューアは未定義状態
@@ -550,7 +550,16 @@ function main()
     // バージョン・チェック
     if( appName === "Adobe Illustrator" && appVersion()[0]  >= 24 )
     {
-        var Obj = new CImageViewDLg();  // 新しいインスタンスを生成
+        // 実行中のスクリプト名を取得（拡張子なし）
+        var scriptName = decodeURI(File($.fileName).name).replace(/\.[^\.]+$/, "");
+
+        var Obj = new CImageViewDLg(scriptName);  // 新しいインスタンスを生成
+
+         // インデックスをタイトルの先頭に表示
+        var Index = Obj.GetGlobalIndex();
+        var Title = Obj.GetDialogTitle();
+        Obj.SetDialogTitle( "[" + Index + "]" + Title );
+
         Obj.show();                     // インスタンスを表示
     }
     else
