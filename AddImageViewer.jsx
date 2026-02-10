@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/08
+// Ver.1.0 : 2026/02/10
 
 #target illustrator
 #targetengine "main"
@@ -43,7 +43,11 @@ var MyDictionaryForViewer = {
     },
      Menu_ResetImageSize: {
         en : "Reset image size",
-        ja : "画像サイズをリセット"
+        ja : "画像サイズを,リセット"
+    },
+    Msg_cant_run: {
+        en: "Can't run",
+        ja: "これ以上、起動できません"
     }
 };
 
@@ -327,56 +331,54 @@ CPopMenu.prototype.show = function() {
 
 // コンストラクタ
 function CImageViewDLg( scriptName ) { 
-       
-    // コンストラクタ, trueを指定してリサイズ可能なダイアログを生成
     CPaletteWindow.call( this, scriptName, _MAX_INSTANCES, true );      // コンストラクタ
     var self = this;
 
     self.m_Viewer = null;   // ビューアは未定義状態
+    self.isResizing = false; // 無限ループ防止フラグ (onResizing サイズ変更中に呼び出される)
 
-    // GUI用のスクリプトを読み込む
-    if ( self.LoadGUIfromJSX( GetScriptDir() + LangStringsForViewer.GUI_JSX ) )
-    {
-        // GUIに変更を入れる
-        self.m_close.onClick = function() { self.onEndOfDialogClick(); }
-        self.m_BtnSelectImage.onClick = function() { self.onLoadImageClick(); }
-        
-        // 画像ファイル選択
-        var imageFile = self.GetImageFile();
-        if ( imageFile === null ) {
+    if ( self.IsDialg()) {
+        // GUI用のスクリプトを読み込む
+        if ( self.LoadGUIfromJSX( GetScriptDir() + LangStringsForViewer.GUI_JSX ) )
+        {
+            // GUIに変更を入れる
+            self.m_close.onClick = function() { self.onEndOfDialogClick(); }
+            self.m_BtnSelectImage.onClick = function() { self.onLoadImageClick(); }
+            
+            // 画像ファイル選択
+            var imageFile = self.GetImageFile();
+            if ( imageFile === null ) {
+                return;
+            }
+            
+            // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
+            self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = self.m_Viewer.Result;
+
+            if ( self.m_Viewer === null ) {
+                alert(LangStringsForViewer.Msg_CantLoadImage);
+                return;
+            } 
+
+            // パラメータ変更
+            self.m_Dialog.opacity = 1.0;   // 不透明度 
+
+            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            // インスタンスメソッドを呼ぶための紐付け
+            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            // onResizing サイズ変更中に呼び出される
+            self.m_Dialog.onResizing = function() { 
+                self.onResizing();
+            };
+
+            // 最後に、新しいインスタンスを追加
+            self.RegisterInstance();
+        }
+        else {
+            alert( LangStringsForViewer.Msg_UndefineGUI );
             return;
         }
-        
-        // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-        self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
-        self.m_Viewer = self.m_Viewer.Result;
-
-        if ( self.m_Viewer === null ) {
-            alert(LangStringsForViewer.Msg_CantLoadImage);
-            return;
-        } 
-
-        // パラメータ変更
-        self.m_Dialog.opacity = 1.0;   // 不透明度 
-
-        // 最後に、新しいインスタンスを追加
-        self.RegisterInstance();
     }
-    else {
-        alert( LangStringsForViewer.Msg_UndefineGUI );
-        return;
-    }
-
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // インスタンスメソッドを呼ぶための紐付け
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // onResizing サイズ変更中に呼び出される
-    self.m_Dialog.onResizing = function() { 
-        self.onResizing();
-    };
-
-    // onResizing サイズ変更中に呼び出される
-    self.isResizing = false; // 無限ループ防止フラグ
 }
 
 ClassInheritance(CImageViewDLg, CPaletteWindow);   // クラス継承
@@ -551,13 +553,16 @@ function main()
         var scriptName = decodeURI(File($.fileName).name).replace(/\.[^\.]+$/, "");
 
         var Obj = new CImageViewDLg(scriptName);  // 新しいインスタンスを生成
+        if ( Obj.IsDialg() ) {
+            // インデックスをタイトルの先頭に表示
+            var Index = Obj.GetGlobalIndex();
+            var Title = Obj.GetDialogTitle();
+            Obj.SetDialogTitle( "[" + Index + "]" + Title );
 
-         // インデックスをタイトルの先頭に表示
-        var Index = Obj.GetGlobalIndex();
-        var Title = Obj.GetDialogTitle();
-        Obj.SetDialogTitle( "[" + Index + "]" + Title );
-
-        Obj.show();                     // インスタンスを表示
+            Obj.show();                     // インスタンスを表示
+        }else {
+            alert( LangStringsForViewer.Msg_cant_run );
+        }
     }
     else
     {
