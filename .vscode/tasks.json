@@ -1,0 +1,37 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "1. Submodule: Commit & Push",
+            "type": "shell",
+            "command": "cd zazlib && git add . && git commit -m 'Update zazlib' && git push origin HEAD:main",
+            "problemMatcher": []
+        },
+        {
+            "label": "2. Parent: Update Pointer",
+            "type": "shell",
+            "command": "git add zazlib && git commit -m 'Relay submodule update'",
+            "problemMatcher": []
+        },
+        {
+            "label": "3. Parent: Push",
+            "type": "shell",
+            "command": "git push origin main",
+            "problemMatcher": []
+        },
+        {
+            "label": "🚀 Run Full Sync",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "1. Submodule: Commit & Push",
+                "2. Parent: Update Pointer",
+                "3. Parent: Push"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
