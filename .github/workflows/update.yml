@@ -21,9 +21,18 @@ jobs:
 
       - name: Sync Folder
         run: |
-          # 共通リポジトリ内の zazlib フォルダをプロジェクト内の zazlib へ同期
-          # rsync の --delete オプションを使うと、削除されたファイルも同期されます
-          rsync -av --delete common-lib/zazlib/ project-repo/zazlib/
+          # 1. コピー先が存在することを確認（念のため）
+          mkdir -p project-repo/zazlib/
+
+          # 2. 共通リポジトリの「中身」をプロジェクトの「zazlib」へ同期
+          # common-lib/ の末尾スラッシュは「中身」を指します
+          # --exclude で共通側の Git 管理情報をプロジェクト側に持ち込まないようにします
+          rsync -av --delete \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            common-lib/ project-repo/zazlib/
+
+          echo "Sync completed: common-lib(root) -> project-repo/zazlib/"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
