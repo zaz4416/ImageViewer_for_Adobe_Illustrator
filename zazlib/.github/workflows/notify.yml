@@ -1,0 +1,19 @@
+﻿name: Notify Projects
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 更新を飛ばしたいリポジトリのリスト
+        repo: ['zaz4416/ImageViewer_for_Adobe_Illustrator.git', 'zaz4416/Hellow_World_for_Adobe_Illustrator.git']
+    steps:
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.MY_PAT }} # 事前に作成した個人用アクセストークン
+          repository: ${{ matrix.repo }}
+          event-type: common_lib_updated
