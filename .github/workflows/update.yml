@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Common Lib Repo
         uses: actions/checkout@v4
         with:
-          repository: YourName/CommonLib # 共通リポジトリ名
+          repository: zaz4416/ZazLib # 共通リポジトリ名[重要] (YourName/CommonLib)
           token: ${{ secrets.MY_PAT }}
           path: common-lib # 共通リポジトリをこのフォルダに展開
 
