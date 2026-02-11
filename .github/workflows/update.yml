@@ -1,45 +1,39 @@
-﻿name: Auto Update Common Folder
+﻿name: Sync Common Folder
 on:
   repository_dispatch:
     types: [common_lib_updated]
 
 jobs:
-  sync-folder:
+  sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Project Repo
         uses: actions/checkout@v4
         with:
-          path: project-repo # 自分のリポジトリをこのフォルダに展開
+          path: project-repo
 
       - name: Checkout Common Lib Repo
         uses: actions/checkout@v4
         with:
-          repository: zaz4416/ZazLib # 共通リポジトリ名[重要] (YourName/CommonLib)
+          repository: zaz4416/ZazLib # 共通リポジトリ名
           token: ${{ secrets.MY_PAT }}
-          path: common-lib # 共通リポジトリをこのフォルダに展開
+          path: common-lib
 
-      - name: Sync Folder
+      - name: Sync zazlib Folder
         run: |
-          # 1. コピー先が存在することを確認（念のため）
           mkdir -p project-repo/zazlib/
-
-          # 2. 共通リポジトリの「中身」をプロジェクトの「zazlib」へ同期
-          # common-lib/ の末尾スラッシュは「中身」を指します
-          # --exclude で共通側の Git 管理情報をプロジェクト側に持ち込まないようにします
+          # 共通側のルートからプロジェクトのzazlibへ同期（Git情報は除外）
           rsync -av --delete \
             --exclude ".git/" \
             --exclude ".github/" \
             common-lib/ project-repo/zazlib/
 
-          echo "Sync completed: common-lib(root) -> project-repo/zazlib/"
-
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           path: project-repo
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Sync zazlib folder from common lib"
-          title: "🤖 共通ライブラリフォルダの同期"
-          body: "共通リポジトリの最新フォルダ内容を同期しました。"
-          branch: "sync-common-folder"
+          token: ${{ secrets.GITHUB_TOKEN }} # 自分のPR作成用
+          commit-message: "🤖 共通ライブラリを最新に同期"
+          branch: sync-common-library
+          title: "🤖 共通ライブラリの自動同期"
+          body: "共通リポジトリ(ZazLib)の更新を反映しました。"
