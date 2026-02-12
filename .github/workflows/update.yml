@@ -5,8 +5,24 @@ on:
 
 jobs:
   sync:
+    # --- 1. ループ防止判定（自己PR防止） ---
+    # 送信元の target_repo と 自分の名前（github.repository）が
+    # 【一致しない】ときだけ実行する
+    if: |
+      github.event.client_payload.target_repo != null &&
+      format('{0}', github.event.client_payload.target_repo) != github.repository
+
     runs-on: ubuntu-latest
     steps:
+      # --- 2. デバッグ用：ログで不一致の原因を特定する ---
+      - name: Debug Context Check
+        run: |
+          echo "--- Context Check ---"
+          echo "Payload (from ZazLib): '${{ github.event.client_payload.target_repo }}'"
+          echo "Current (This Repo):  '${{ github.repository }}'"
+          echo "---------------------"
+
+      # --- 3. リポジトリのチェックアウト ---
       - name: Checkout Project Repo
         uses: actions/checkout@v4
         with:
@@ -15,25 +31,29 @@ jobs:
       - name: Checkout Common Lib Repo
         uses: actions/checkout@v4
         with:
-          repository: zaz4416/ZazLib # 共通リポジトリ名
+          repository: zaz4416/ZazLib # ★共通リポジトリ名
           token: ${{ secrets.MY_PAT }}
           path: common-lib
 
+      # --- 4. フォルダ同期（rsync） ---
       - name: Sync zazlib Folder
         run: |
           mkdir -p project-repo/zazlib/
-          # 共通側のルートからプロジェクトのzazlibへ同期（Git情報は除外）
+          # 共通側のルートをプロジェクトのzazlibへ同期（Git情報は除外）
           rsync -av --delete \
             --exclude ".git/" \
             --exclude ".github/" \
             common-lib/ project-repo/zazlib/
 
+      # --- 5. 変更があればプルリクエスト作成 ---
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           path: project-repo
-          token: ${{ secrets.GITHUB_TOKEN }} # 自分のPR作成用
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "🤖 共通ライブラリを最新に同期"
           branch: sync-common-library
           title: "🤖 共通ライブラリの自動同期"
-          body: "共通リポジトリ(ZazLib)の更新を反映しました。"
+          body: |
+            共通リポジトリ(ZazLib)からの更新通知を受信しました。
+            `zazlib` フォルダの内容を最新状態に同期しました。
