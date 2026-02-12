@@ -29,13 +29,17 @@ jobs:                                       # ジョブ定義
       - name: Create Package
         run: |
           # サブモジュールや取得したファイルを含めてzip化
-          zip -r source-full.zip . -x "*.git*"
+          # zip -r source-full.zip . -x "*.git*"
+          # zip -r ${{ github.event.repository.name }}.zip . -x "*.git*"
+          zip -r ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip . -x "*.git*"
 
       # 4. GitHub CLIを使用してリリースにアップロード
       - name: Upload to Release
         run: |
           # publishedイベントの場合、github.event.release.tag_name でタグを取得可能
-          gh release upload ${{ github.event.release.tag_name }} source-full.zip
+          # gh release upload ${{ github.event.release.tag_name }} source-full.zip
+          # gh release upload ${{ github.event.release.tag_name }} ${{ github.event.repository.name }}.zip
+          gh release upload ${{ github.event.release.tag_name }} ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
