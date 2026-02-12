@@ -51,15 +51,21 @@ jobs:
         with:
           path: project-repo
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "🤖 共通ライブラリを最新に同期（元: ${{ github.event.client_payload.target_repo || 'ZazLib' }}）"
+          commit-message: "🤖 ${{ github.repository }} の zazlib を更新"
           branch: sync-common-library
-          # タイトルにリポジトリ名を入れる
-          title: "🤖 共通ライブラリ同期 [from: ${{ github.event.client_payload.target_repo || 'ZazLib' }}]"
-          # 本文に詳細なリンクなどを入れる
+          
+          # タイトルに変更先のリポジトリ名を入れる
+          title: "🤖 共通ライブラリ同期 [target: ${{ github.repository }}]"
+          
+          # 本文に詳細を記載
           body: |
-            共通リポジトリ(ZazLib)からの更新通知を受信しました。
+            ## 共通ライブラリの自動同期レポート
             
-            **更新のきっかけとなったリポジトリ:** 
-            https://github.com{{ github.event.client_payload.target_repo || 'zaz4416/ZazLib' }}
+            **同期先リポジトリ:** 
+            - [${{ github.repository }}](https://github.com{{ github.repository }})
             
-            `zazlib` フォルダの内容を最新状態に同期しました。
+            **更新のトリガー:** 
+            - 送信元: ${{ github.event.client_payload.target_repo || 'ZazLib 直接更新' }}
+            
+            共通リポジトリ(ZazLib)の最新の `zazlib` フォルダ内容を反映しました。
+            動作確認後、マージしてください。
