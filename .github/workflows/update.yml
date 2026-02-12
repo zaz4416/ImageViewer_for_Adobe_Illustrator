@@ -8,9 +8,9 @@ jobs:
     # --- 1. ループ防止判定（自己PR防止） ---
     # 送信元の target_repo と 自分の名前（github.repository）が
     # 【一致しない】ときだけ実行する
-    if: |
-      github.event.client_payload.target_repo != null &&
-      format('{0}', github.event.client_payload.target_repo) != github.repository
+    #if: |
+    #  github.event.client_payload.target_repo != null &&
+    #  format('{0}', github.event.client_payload.target_repo) != github.repository
 
     runs-on: ubuntu-latest
     steps:
