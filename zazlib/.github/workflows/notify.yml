@@ -1,24 +1,21 @@
 ﻿name: Notify Projects
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ] # mainでもmasterでも動くようにする
+  workflow_dispatch: # ★これでブラウザから手動実行できるかテストできる
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     strategy:
-      # ★ここを追加！1つ失敗しても他を止めない設定
       fail-fast: false
       matrix:
-        repo: 
-          - 'zaz4416/ImageViewer_for_Adobe_Illustrator'
-          - 'zaz4416/Hellow_World_for_Adobe_Illustrator'
-          # 今後増えるプロジェクトをここに追加していく
+        repo: ['zaz4416/ImageViewer_for_Adobe_Illustrator', 'zaz4416/Hellow_World_for_Adobe_Illustrator']
     steps:
       - name: Repository Dispatch
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.MY_PAT }}
           repository: ${{ matrix.repo }}
           event-type: common_lib_updated
-        
+          client-payload: '{"target_repo": "${{ matrix.repo }}"}'
