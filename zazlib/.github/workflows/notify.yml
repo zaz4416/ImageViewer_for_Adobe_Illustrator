@@ -1,8 +1,11 @@
 ﻿name: Notify Projects
 on:
   push:
-    branches: [ main, master ] # mainでもmasterでも動くようにする
-  workflow_dispatch: # ★これでブラウザから手動実行できるかテストできる
+    branches: [ main ]
+  repository_dispatch:
+    types: [project_contribution]
+  # ★ここを追加：手動実行を許可する
+  #workflow_dispatch:
 
 jobs:
   dispatch:
@@ -10,7 +13,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repo: ['zaz4416/ImageViewer_for_Adobe_Illustrator', 'zaz4416/Hellow_World_for_Adobe_Illustrator']
+        repo: 
+          - 'zaz4416/ImageViewer_for_Adobe_Illustrator'
+          - 'zaz4416/Hellow_World_for_Adobe_Illustrator'
+          - 'zaz4416/Panele_Paint_for_Adobe_Illustrator'
+          - 'zaz4416/Panele_LivePaint_for_Adobe_Illustrator'
     steps:
       - name: Repository Dispatch
         uses: peter-evans/repository-dispatch@v2
@@ -18,4 +25,9 @@ jobs:
           token: ${{ secrets.MY_PAT }}
           repository: ${{ matrix.repo }}
           event-type: common_lib_updated
-          client-payload: '{"target_repo": "${{ matrix.repo }}"}'
+          # 手動実行時、github.event.client_payload.target_repo は空になるため、
+          # その場合は ZazLib 自身を送信元として扱う
+          client-payload: >
+            {
+              "target_repo": "${{ github.event.client_payload.target_repo || github.repository }}"
+            }
