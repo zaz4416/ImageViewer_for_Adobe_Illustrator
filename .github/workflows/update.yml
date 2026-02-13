@@ -62,7 +62,7 @@ jobs:
             ## 共通ライブラリの自動同期レポート
             
             **同期先リポジトリ:** 
-            - [${{ github.repository }}](https://github.com{{ github.repository }})
+            - [${{ github.repository }}](https://github.com/${{ github.repository }})
             
             **更新のトリガー:** 
             - 送信元: ${{ github.event.client_payload.target_repo || 'ZazLib 直接更新' }}
