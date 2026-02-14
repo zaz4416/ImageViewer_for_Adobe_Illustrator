@@ -38,9 +38,16 @@ jobs:
       # --- 4. フォルダ同期（rsync） ---
       - name: Sync zazlib Folder
         run: |
+          # コピー先フォルダを強制作成
           mkdir -p project-repo/zazlib/
-          # 共通側のルートをプロジェクトのzazlibへ同期（Git情報は除外）
-          rsync -av --delete \
+          
+          echo "--- Directory Structure Check ---"
+          ls -R common-lib
+          
+          # 同期実行
+          # -vv をつけることで、スキップされた理由（uptodate等）を詳細にログ出力します
+          # common-lib/ の末尾スラッシュは「中身」を指します
+          rsync -avv --delete \
             --exclude ".git/" \
             --exclude ".github/" \
             common-lib/ project-repo/zazlib/
