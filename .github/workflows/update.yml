@@ -11,6 +11,10 @@ jobs:
     #if: |
     #  github.event.client_payload.target_repo != null &&
     #  format('{0}', github.event.client_payload.target_repo) != github.repository
+    # 判定：送信元が自分自身でない、かつ、既に同期用ブランチが存在しない場合のみ実行
+    if: |
+      (github.event.client_payload.target_repo == null || 
+       github.event.client_payload.target_repo != github.repository)
 
     runs-on: ubuntu-latest
     steps:
