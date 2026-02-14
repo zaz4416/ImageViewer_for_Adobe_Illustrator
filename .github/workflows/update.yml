@@ -62,11 +62,11 @@ jobs:
           branch: sync-common-library
           
           # タイトルに変更先のリポジトリ名を入れる
-          title: "🤖 共通ライブラリ同期 [target: ${{ github.repository }}]"
+          title: "🤖 Zazlib同期 [target: ${{ github.repository }}]"
           
           # 本文に詳細を記載
           body: |
-            ## 共通ライブラリの自動同期レポート
+            ## 共通ライブラリ(Zazlib)の自動同期レポート
             
             **同期先リポジトリ:** 
             - [${{ github.repository }}](https://github.com/${{ github.repository }})
@@ -75,4 +75,7 @@ jobs:
             - 送信元: ${{ github.event.client_payload.target_repo || 'ZazLib 直接更新' }}
             
             共通リポジトリ(ZazLib)の最新の `zazlib` フォルダ内容を反映しました。
-            動作確認後、マージしてください。
+            VSCode の [GitHub Pull Requests](https://marketplace.visualstudio.com) 拡張機能で内容を確認し、マージしてください。
+          
+          # マージ後に不要になった作業ブランチを自動で削除する
+          delete-branch: true
