@@ -51,7 +51,7 @@ jobs:
           # 同期実行
           # -vv をつけることで、スキップされた理由（uptodate等）を詳細にログ出力します
           # common-lib/ の末尾スラッシュは「中身」を指します
-          rsync -avv --delete \
+          rsync -avvc --delete \
             --exclude ".git/" \
             --exclude ".github/" \
             common-lib/ project-repo/zazlib/
