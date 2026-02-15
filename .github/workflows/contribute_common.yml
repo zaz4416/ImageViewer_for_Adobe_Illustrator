@@ -2,8 +2,8 @@
 on:
   push:
     paths:
-      - 'zazlib/**' # zazlib内の変更時のみ発火
-    branches: [ main ] # プロジェクトのメインブランチ名
+      - 'zazlib/**'
+    branches: [ main ]
 
 jobs:
   contribute:
@@ -13,27 +13,37 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: project-repo
+          token: ${{ secrets.MY_PAT }}
 
       - name: Checkout Common Lib
         uses: actions/checkout@v4
         with:
-          repository: zaz4416/ZazLib # 共通リポジトリ名
-          token: ${{ secrets.MY_PAT }} # 共通側への書き込み権限が必要
+          repository: zaz4416/ZazLib
+          token: ${{ secrets.MY_PAT }}
           path: common-lib
 
       - name: Sync Back to Common
         run: |
-          # プロジェクトのzazlibを共通リポジトリのルートに同期
-          rsync -av --delete \
+          rsync -avvc --delete \
             --exclude ".git/" \
             --exclude ".github/" \
             project-repo/zazlib/ common-lib/
 
       - name: Create Pull Request on Common Lib
+        id: cpr_common
         uses: peter-evans/create-pull-request@v5
         with:
           path: common-lib
           token: ${{ secrets.MY_PAT }}
           branch: update-from-${{ github.event.repository.name }}
           title: "🚀 Update from ${{ github.event.repository.name }}"
-          body: "プロジェクト側での修正を共通リポジトリへ提案します。"
+          body: "プロジェクト側での修正を提案します。"
+
+      # 共通リポジトリ(ZazLib)の notify.yml を叩く
+      - name: Repository Dispatch to Common
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.MY_PAT }}
+          repository: zaz4416/ZazLib
+          event-type: project_contribution
+          client-payload: '{"target_repo": "${{ github.repository }}"}'
