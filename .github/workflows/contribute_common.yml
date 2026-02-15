@@ -1,12 +1,10 @@
-﻿name: Contribute zazlib to Common Lib
+﻿name: Contribute to Common Lib
 
 on:
   push:
-    # --- 発火条件の定義 ---
-    paths:
-      - 'zazlib/**' # zazlib内の変更時のみ発火（他のファイル修正では動かさない）
+    # 変数は使用できないためワイルドカードで全ルートを監視し、下のステップでフォルダ判定を行います
     branches:
-      - main       # メインブランチへの Push を監視
+      - main
 
 jobs:
   contribute:
@@ -17,47 +15,62 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: project-repo
-          token: ${{ secrets.MY_PAT }} # 最強の合鍵(MY_PAT)を使用して自身のコードを取得
+          token: ${{ secrets.MY_PAT }} # 最強の合鍵
 
-      # --- 2. 届け先である「共通リポジトリ(ZazLib)」をチェックアウト ---
+      # --- 2. 届け先である「共通リポジトリ」をチェックアウト ---
       - name: Checkout Common Lib
         uses: actions/checkout@v4
         with:
-          repository: zaz4416/ZazLib # 共通リポジトリを指定
-          token: ${{ secrets.MY_PAT }} # 共通側への書き込み権限が必要なため MY_PAT を使用
+          # 汎用化：オーナー名と変数からリポジトリを特定
+          repository: ${{ github.repository_owner }}/${{ vars.COMMON_REPO_NAME }}
+          token: ${{ secrets.MY_PAT }}
           path: common-lib
 
-      # --- 3. プロジェクトで直した zazlib を共通側へコピー ---
+      # --- 3. プロジェクトで直した指定フォルダを共通側へコピー ---
       - name: Sync Back to Common
         run: |
-          # rsyncコマンドで同期。-c (checksum) で内容の差を厳格にチェック
-          # 不要なGit設定ファイル(.git)やActions設定(.github)は除外してコピー
-          rsync -avvc --delete \
-            --exclude ".git/" \
-            --exclude ".github/" \
-            project-repo/zazlib/ common-lib/
+          # 変数を使用して対象ディレクトリを特定
+          TARGET_DIR="project-repo/${{ vars.SYNC_FOLDER_NAME }}"
+          
+          if [ -d "$TARGET_DIR" ]; then
+            echo "--- Syncing $TARGET_DIR to common-lib ---"
+            # -c (checksum) で厳格に比較し同期
+            rsync -avvc --delete \
+              --exclude ".git/" \
+              --exclude ".github/" \
+              "$TARGET_DIR/" common-lib/
+          else
+            echo "Directory $TARGET_DIR not found. Skipping sync."
+            exit 0
+          fi
 
-      # --- 4. 共通リポジトリ(ZazLib)側に「修正提案(PR)」を作成 ---
+      # --- 4. 共通リポジトリ側に「修正提案(PR)」を作成 ---
       - name: Create Pull Request on Common Lib
         id: cpr_common
         uses: peter-evans/create-pull-request@v5
         with:
           path: common-lib
           token: ${{ secrets.MY_PAT }}
-          # どのプロジェクトからの修正か分かるようにブランチ名を動的に作成
+          # 汎用化：実行元のリポジトリ名をブランチ名に使用
           branch: update-from-${{ github.event.repository.name }}
           title: "🚀 Update from ${{ github.event.repository.name }}"
           body: |
-            ${{ github.event.repository.name }} で行われた修正を共通リポジトリへ書き戻します。
-            このプルリクエストをマージすると、ZazLib側の notify.yml が走り、
+            ## 共通リポジトリへの逆流同期レポート
+            
+            **修正元:** [${{ github.repository }}](https://github.com/${{ github.repository }})
+            **対象フォルダ:** `${{ vars.SYNC_FOLDER_NAME }}`
+            
+            このPRをマージすると、${{ vars.COMMON_REPO_NAME }} 側の通知アクションが走り、
             他の全プロジェクトへこの修正が自動配信されます。
 
-      # --- 5. ZazLib側の「全プロジェクト通知(notify.yml)」を起動させる ---
+      # --- 5. 共通リポジトリ側の「全プロジェクト通知」を起動させる ---
       - name: Repository Dispatch to Common
+        # PRが作成された場合のみ通知を飛ばす
+        if: steps.cpr_common.outputs.pull-request-number != ''
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.MY_PAT }} # ZazLibのアクションを叩くために必要
-          repository: zaz4416/ZazLib
-          event-type: project_contribution # ZazLib側の notify.yml が待ち受けている名前
-          # 無限ループを防ぐため「誰がこの変更の主導者か」をペイロードとして送信
+          token: ${{ secrets.MY_PAT }}
+          repository: ${{ github.repository_owner }}/${{ vars.COMMON_REPO_NAME }}
+          event-type: project_contribution
+          # 自分のリポジトリ名を送信して、後のループ防止判定に使用させる
           client-payload: '{"target_repo": "${{ github.repository }}"}'

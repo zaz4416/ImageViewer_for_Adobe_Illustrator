@@ -1,24 +1,24 @@
 ﻿name: Sync Common Folder
+
 on:
+  # 共通リポジトリ（ZazLib等）からの通知を受けて起動
   repository_dispatch:
     types: [common_lib_updated]
+  # デバッグ用：GitHub上のActionsタブから手動実行も可能
+  workflow_dispatch:
 
 jobs:
   sync:
     # --- 1. ループ防止判定（自己PR防止） ---
     # 送信元の target_repo と 自分の名前（github.repository）が
-    # 【一致しない】ときだけ実行する
-    #if: |
-    #  github.event.client_payload.target_repo != null &&
-    #  format('{0}', github.event.client_payload.target_repo) != github.repository
-    # 判定：送信元が自分自身でない、かつ、既に同期用ブランチが存在しない場合のみ実行
+    # 【一致しない】ときだけ実行する。ZazLibからの直接更新(null)も許可。
     if: |
-      (github.event.client_payload.target_repo == null || 
-       github.event.client_payload.target_repo != github.repository)
+      github.event.client_payload.target_repo == null || 
+      github.event.client_payload.target_repo != github.repository
 
     runs-on: ubuntu-latest
     steps:
-      # --- 2. デバッグ用：ログで不一致の原因を特定する ---
+      # --- 2. デバッグ用：ログで判定の根拠を特定する ---
       - name: Debug Context Check
         run: |
           echo "--- Context Check ---"
@@ -31,30 +31,33 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: project-repo
+          token: ${{ secrets.MY_PAT }} # 自身の操作にも最強の合鍵を使用
 
       - name: Checkout Common Lib Repo
         uses: actions/checkout@v4
         with:
-          repository: zaz4416/ZazLib # ★共通リポジトリ名
+          # 汎用化：オーナー名と変数から共通リポジトリを特定
+          repository: ${{ github.repository_owner }}/${{ vars.COMMON_REPO_NAME }}
           token: ${{ secrets.MY_PAT }}
           path: common-lib
 
       # --- 4. フォルダ同期（rsync） ---
-      - name: Sync zazlib Folder
+      - name: Sync Folder from Common
         run: |
-          # コピー先フォルダを強制作成
-          mkdir -p project-repo/zazlib/
+          # 変数を使用して同期先フォルダ(zazlib等)を特定・作成
+          DEST_DIR="project-repo/${{ vars.SYNC_FOLDER_NAME }}"
+          mkdir -p "$DEST_DIR"
           
           echo "--- Directory Structure Check ---"
           ls -R common-lib
           
           # 同期実行
-          # -vv をつけることで、スキップされた理由（uptodate等）を詳細にログ出力します
+          # -vv: 詳細ログ / -c: チェックサムで厳格に内容を比較
           # common-lib/ の末尾スラッシュは「中身」を指します
           rsync -avvc --delete \
             --exclude ".git/" \
             --exclude ".github/" \
-            common-lib/ project-repo/zazlib/
+            common-lib/ "$DEST_DIR/"
 
       # --- 5. 変更があればプルリクエスト作成 ---
       - name: Create Pull Request
@@ -62,7 +65,7 @@ jobs:
         with:
           path: project-repo
           token: ${{ secrets.MY_PAT }}
-          commit-message: "🤖 ${{ github.repository }} の zazlib を更新"
+          commit-message: "🤖 ${{ github.repository }} (${{ vars.SYNC_FOLDER_NAME }}) を同期更新"
           branch: sync-common-library
           
           # タイトルに変更先のリポジトリ名を入れる
@@ -70,16 +73,18 @@ jobs:
           
           # 本文に詳細を記載
           body: |
-            ## 共通ライブラリ(Zazlib)の自動同期レポート
+            ## 共通リポジトリの自動同期レポート
             
             **同期先リポジトリ:** 
             - [${{ github.repository }}](https://github.com/${{ github.repository }})
             
-            **更新のトリガー:** 
-            - 送信元: ${{ github.event.client_payload.target_repo || 'ZazLib 直接更新' }}
+            **対象フォルダ:** 
+            - `${{ vars.SYNC_FOLDER_NAME }}`
             
-            共通リポジトリ(ZazLib)の最新の `zazlib` フォルダ内容を反映しました。
-            VSCode の [GitHub Pull Requests](https://marketplace.visualstudio.com) 拡張機能で内容を確認し、マージしてください。
+            **更新のトリガー:** 
+            - 送信元: ${{ github.event.client_payload.target_repo || vars.COMMON_REPO_NAME }}
+            
+            共通リポジトリの内容を反映しました。内容を確認し、問題なければマージしてください。
           
           # マージ後に不要になった作業ブランチを自動で削除する
           delete-branch: true
