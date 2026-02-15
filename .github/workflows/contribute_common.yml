@@ -1,49 +1,62 @@
 ﻿name: Contribute zazlib to Common Lib
+
 on:
   push:
+    # zazlib フォルダ配下の変更時のみ実行
     paths:
-      - 'zazlib/**' # zazlib内の変更時のみ発火
-    branches: [ main ] # プロジェクトのメインブランチ名
+      - 'zazlib/**'
+    # プロジェクトのメインブランチへの Push を監視
+    branches: [ main ]
 
 jobs:
   contribute:
     runs-on: ubuntu-latest
     steps:
+      # --- 1. プロジェクトリポジトリをチェックアウト ---
       - name: Checkout Project
         uses: actions/checkout@v4
         with:
           path: project-repo
-          token: ${{ secrets.MY_PAT }}
+          token: ${{ secrets.MY_PAT }} # 最強の合鍵を使用
 
+      # --- 2. 共通リポジトリ(ZazLib)をチェックアウト ---
       - name: Checkout Common Lib
         uses: actions/checkout@v4
         with:
           repository: zaz4416/ZazLib
-          token: ${{ secrets.MY_PAT }}
+          token: ${{ secrets.MY_PAT }} # 共通側への書き込み権限が必要
           path: common-lib
 
+      # --- 3. プロジェクトの変更を共通側のディレクトリへ同期 ---
       - name: Sync Back to Common
         run: |
+          # rsync で中身を同期。-c オプションで厳格に比較
           rsync -avvc --delete \
             --exclude ".git/" \
             --exclude ".github/" \
             project-repo/zazlib/ common-lib/
 
+      # --- 4. 共通リポジトリ(ZazLib)側にプルリクエストを作成 ---
       - name: Create Pull Request on Common Lib
         id: cpr_common
         uses: peter-evans/create-pull-request@v5
         with:
           path: common-lib
           token: ${{ secrets.MY_PAT }}
+          # プロジェクト名を含めた作業ブランチを作成
           branch: update-from-${{ github.event.repository.name }}
           title: "🚀 Update from ${{ github.event.repository.name }}"
-          body: "プロジェクト側での修正を提案します。"
+          body: |
+            ${{ github.event.repository.name }} リポジトリでの修正を共通リポジトリへ提案します。
+            この PR をマージすると、全プロジェクトへ自動同期が開始されます。
 
-      # 共通リポジトリ(ZazLib)の notify.yml を叩く
+      # --- 5. 共通リポジトリ(ZazLib)の notify.yml をキックする合図を送る ---
       - name: Repository Dispatch to Common
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.MY_PAT }}
           repository: zaz4416/ZazLib
+          # notify.yml が待ち受けている event-type と一致させる
           event-type: project_contribution
+          # 自分が送信元であることをペイロードに含める（無限ループ防止用）
           client-payload: '{"target_repo": "${{ github.repository }}"}'
