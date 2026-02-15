@@ -2,8 +2,8 @@
 on:
   push:
     paths:
-      - 'zazlib/**'
-    branches: [ main ]
+      - 'zazlib/**' # zazlib内の変更時のみ発火
+    branches: [ main ] # プロジェクトのメインブランチ名
 
 jobs:
   contribute:
