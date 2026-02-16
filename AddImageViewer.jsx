@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/10
+// Ver.1.0 : 2026/02/17
 
 #target illustrator
 #targetengine "main"
@@ -199,6 +199,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 switch (event.button) {
                     case 0:
                         // 左クリック
+                        self.OnPickUp(event, pObj, imageFile, self.m_Canvas); // メニュー表示へ
                         break;
                     case 1:
                         // 中央（ホイール）クリック
@@ -277,6 +278,75 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
 
         // 3. メニューを表示
         menuWin.show();
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+
+// Canvasから親ウィンドウを確実に特定する関数
+function getParentWindow(obj) {
+    var curr = obj;
+    while (curr.parent) {
+        curr = curr.parent;
+    }
+    return curr; // これが Window オブジェクト
+}
+
+/**
+ * 左クリックメニューの構築と表示
+ */
+CViewer.prototype.OnPickUp = function(event, pObj, imageFile, pCanvas) {
+    try {
+        var GlbObj = pObj.GetDialogObject();
+
+        alert("Clicked at screen coordinates: (" + event.screenX + ", " + event.screenY + ")");
+
+        var myWin = getParentWindow(GlbObj.m_Viewer.m_Canvas);
+
+        // 1. 親ウィンドウの絶対座標を取得
+        var winAbsX = myWin.location.x;
+        var winAbsY = myWin.location.y;
+
+        alert("Window absolute position: (" + winAbsX + ", " + winAbsY + ")");
+
+        // 2. ウィンドウ内での m_Canvas の累積相対座標を計算
+        // (location は直近の親からの距離なので、親を遡って全部足す)
+        var totalRelX = 0;
+        var totalRelY = 0;
+        var target = GlbObj.m_Viewer.m_Canvas;
+
+        alert("Calculating relative position...");
+
+        while (target && target.type !== 'window') {
+            totalRelX += target.location.x;
+            totalRelY += target.location.y;
+            alert("Current target: " + target.type + ", location: (" + target.location.x + ", " + target.location.y + "), totalRel: (" + totalRelX + ", " + totalRelY + ")");
+
+            // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
+            if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
+                // margins.left / top が設定されている場合は加算
+                if (target.parent.margins) {
+                    totalRelX += target.parent.margins.left;
+                    totalRelY += target.parent.margins.top;
+                }
+
+                alert("Found parent with margins: " + target.parent.type + ", margins: " + target.parent.margins.left + ", " + target.parent.margins.top + "), totalRel: (" + totalRelX + ", " + totalRelY + ")");
+            }
+
+            target = target.parent;
+        }
+
+
+        // 3. マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
+        var localX = Math.floor(event.screenX - totalRelX);
+        var localY = Math.floor(event.screenY - totalRelY);
+
+        alert("Clicked at local coordinates: (" + localX + ", " + localY + ")");
+
+        // BridgeTalkでPSを呼び出し
+        getPixelColorViaPS(imageFile, localX, localY);
+
     } catch(e) {
         alert( e.message );
     }
@@ -455,7 +525,7 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var self = this.GetDialogObject();;
+    var self = this.GetDialogObject();
 
     try {
         // 画像ファイル選択
@@ -518,6 +588,74 @@ CImageViewDLg.prototype.GetImageFile = function() {
 
     return imageFile;
 }
+
+
+/**
+ * Photoshopと通信して指定した画像ファイルの特定座標の色を取得する
+ * @param {File} imgFile 解析対象の画像ファイルオブジェクト
+ * @param {Number} x 画像上のX座標（ピクセル）
+ * @param {Number} y 画像上のY座標（ピクセル）
+ * @param {Function} callback 結果を受け取った後に実行する関数
+ */
+function getPixelColorViaPS(imgFile, x, y, callback) {
+    // 1. 座標が数値であることを保証（undefined対策）
+    var targetX = Number(x) || 0;
+    var targetY = Number(y) || 0;
+
+    // 2. BridgeTalkの設定
+    var bt = new BridgeTalk();
+    bt.target = "photoshop";
+
+    // 3. Photoshop側で実行するスクリプト（文字列）
+    // - ファイルを開く
+    // - インデックスカラーならRGBへ変換（エラー対策）
+    // - 座標を画像サイズ内に収める（エラー対策）
+    // - カラーサンプラーを追加して色を取得
+    // - 全サンプラーを削除して掃除
+    var psCode = "var f = new File('" + imgFile.fullName + "');" +
+                 "if (f.exists) {" +
+                 "  var doc = open(f);" +
+                 "  if (doc.mode == DocumentMode.INDEXEDCOLOR) { doc.changeMode(ChangeMode.RGB); }" +
+                 "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.value - 1));" +
+                 "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.value - 1));" +
+                 "  var sampler = doc.colorSamplers.add([safeX, safeY]);" +
+                 "  var res = Math.round(sampler.color.rgb.red) + ',' + " +
+                 "            Math.round(sampler.color.rgb.green) + ',' + " +
+                 "            Math.round(sampler.color.rgb.blue);" +
+                 "  doc.colorSamplers.removeAll();" + 
+                 "  doc.close(SaveOptions.DONOTSAVECHANGES);" +
+                 "  res;" +
+                 "} else { 'Error: File not found'; }";
+
+    bt.body = psCode;
+
+    // 4. 結果が戻ってきた時の処理
+    bt.onResult = function(resObj) {
+        if (resObj.body.indexOf("Error") !== -1) {
+            alert(resObj.body);
+            return;
+        }
+        var rgbArray = resObj.body.split(","); // "255,128,0" -> [255, 128, 0]
+
+        alert("Pixel Color at (" + targetX + ", " + targetY + "): R=" + rgbArray[0] + " G=" + rgbArray[1] + " B=" + rgbArray[2]);
+        
+        // 外部から渡されたコールバック関数を実行
+        /*
+        if (typeof callback === "function") {
+            callback(rgbArray);
+        }
+        */
+    };
+
+    // 5. 通信エラー時の処理
+    bt.onError = function(errObj) {
+        alert("Photoshopとの通信に失敗しました。\nPhotoshopが起動しているか確認してください。\n詳細: " + errObj.body);
+    };
+
+    // 6. 送信
+    bt.send();
+}
+
 
 /**
  * PNGファイルが透明度(Alpha)を持っているか判定する
