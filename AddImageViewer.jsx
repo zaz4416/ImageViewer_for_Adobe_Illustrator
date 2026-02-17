@@ -123,17 +123,19 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     var self = this;
     self.Result = null;
     self.xDialog = pDialog;
+    self.GlobalScale = 0.25 // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
+    self.m_Image = null; // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
 
     try{
-        var ISize = self.getImageSize(imageFile);
-        var imageWidth   = ISize.width;      // 画像の幅
-        var imageHeight  = ISize.height;     // 画像の高さ
-        self.aspectRatio = ISize.ratio;      // 画像の縦横比
+        self.m_Image = self.getImageSize(imageFile);
+        var imageWidth   = self.m_Image.width;      // 画像の幅
+        var imageHeight  = self.m_Image.height;     // 画像の高さ
+        self.aspectRatio = self.m_Image.ratio;      // 画像の縦横比
 
         // --- モニター解像度を考慮したリサイズ ---
         {
             var screen = getScreenResolution();
-            var ImaseSaling = 0.25; // 画像を表示する際のスケーリング
+            var ImaseSaling = self.GlobalScale; // 画像を表示する際のスケーリング
             var maxW = screen.width  * ImaseSaling;
             var maxH = screen.height * ImaseSaling;
 
@@ -199,7 +201,8 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 switch (event.button) {
                     case 0:
                         // 左クリック
-                        if (self.m_ColorBox) {
+                        //if (self.m_ColorBox) 
+                        {
                             self.OnPickUp(event, pObj, imageFile); // メニュー表示へ
                         }
                         break;
@@ -325,6 +328,8 @@ function GetObjectLocalLocation(obj) {
 function GetMouseLocalLocation(event, obj) {
     var objLocation = GetObjectLocalLocation(obj);
 
+    //alert("Object location relative to window: (" + objLocation.x + ", " + objLocation.y + ")"); // デバッグ用：オブジェクトのウィンドウ内位置を表示
+
     // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
     var localX = Math.floor(event.screenX - objLocation.x);
     var localY = Math.floor(event.screenY - objLocation.y);
@@ -342,14 +347,33 @@ function GetMouseLocalLocation(event, obj) {
  */
 CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
     try {
+
+        alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
+
         var GlbObj = pObj.GetDialogObject();
         var pView = GlbObj.m_Viewer;
+        var pCanvas = GlbObj.m_Viewer.m_Canvas;
 
         var canvasLocation = GetMouseLocalLocation(event, pView.m_Canvas);
-        var zxzX =  Math.floor(canvasLocation.x * pView.aspectRatio / pView.GlobalScale);
-        var zxzY =  Math.floor(canvasLocation.y * pView.aspectRatio / pView.GlobalScale);
 
-        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
+        var imageWidth   = pView.m_Image.width;      // 画像の幅
+        var imageHeight  = pView.m_Image.height;     // 画像の高さ
+
+        alert("Image size: (" + imageWidth + ", " + imageHeight + ")"); // デバッグ用：画像のサイズを表示
+
+        var canvasWidth  = pCanvas.size.width;     // キャンバスの幅
+        var canvasHeight = pCanvas.size.height;    // キャンバスの高さ
+
+        alert("Canvas local coordinates: (" + canvasLocation.x + ", " + canvasLocation.y + ")");
+    
+        //var zxzX =  Math.floor(canvasLocation.x * pView.aspectRatio / pView.GlobalScale);
+        //var zxzY =  Math.floor(canvasLocation.y * pView.aspectRatio / pView.GlobalScale);
+
+        var zxzX =  Math.floor(imageWidth * (canvasLocation.x / canvasWidth));
+        var zxzY =  Math.floor(imageHeight * (canvasLocation.y / canvasHeight));
+
+
+        alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
         
         // BridgeTalkでPSを呼び出し
         getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
@@ -379,32 +403,44 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
     // Illustrator側の変数 imageFile, targetX, targetY を使って組み立てます
     var psCode = [
         "(function() {",
-        "  var f = new File('" + imgFile.fullName + "');", // URI形式で安全に指定
-        "  if (!f.exists) return 'Error: File not found (' + f.fsName + ')';",
+        "  var savedRuler = app.preferences.rulerUnits;",
+        "  app.preferences.rulerUnits = Units.PIXELS; // 単位をピクセルに強制",
         "  ",
-        "  var doc = open(f);",
+        "  var f = new File('" + imgFile.fullName + "');",
+        "  if (!f.exists) return 'Error: File not found';",
         "  ",
-        "  // 1. インデックスカラー等の解析不可モードをRGBに変換",
-        "  if (doc.mode == DocumentMode.INDEXEDCOLOR || doc.mode == DocumentMode.GRAYSCALE) {",
-        "    doc.changeMode(ChangeMode.RGB);",
-        "  }",
+        "  var doc = open(f, undefined, false);",
+        "  app.activeDocument = doc;",
         "  ",
-        "  // 2. 座標を画像サイズ内に確実に収める (0 ～ width-1 / 0 ～ height-1)",
-        "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.value - 1));",
-        "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.value - 1));",
+        "  if (doc.mode == DocumentMode.INDEXEDCOLOR) doc.changeMode(ChangeMode.RGB);",
         "  ",
-        "  // 3. サンプラーを追加（上限10個に備えて一度全削除）",
+        "  // doc.width.as('px') を使うことで確実にピクセル数と比較",
+        "  var w = doc.width.as('px');",
+        "  var h = doc.height.as('px');",
+        "  var safeX = Math.max(0, Math.min(" + targetX + ", w - 1));",
+        "  var safeY = Math.max(0, Math.min(" + targetY + ", h - 1));",
+        "  ",
         "  doc.colorSamplers.removeAll();",
-        "  var sampler = doc.colorSamplers.add([Number(safeX), Number(safeY)]);",
+        "  var sampler = doc.colorSamplers.add([safeX, safeY]);",
         "  ",
-        "  // 4. RGB値を取得（0.5などの小数を防ぐため丸める）",
-        "  var r = Math.round(sampler.color.rgb.red);",
-        "  var g = Math.round(sampler.color.rgb.green);",
-        "  var b = Math.round(sampler.color.rgb.blue);",
+        "  var res = Math.round(sampler.color.rgb.red) + ',' + ",
+        "            Math.round(sampler.color.rgb.green) + ',' + ",
+        "            Math.round(sampler.color.rgb.blue);",
         "  ",
-        "  // 5. 後片付けをして結果を文字列で返す",
-        "  doc.close(SaveOptions.DONOTSAVECHANGES);",
-        "  return r + ',' + g + ',' + b;",
+        "  var markerLayer = doc.artLayers.add();",
+        "  markerLayer.name = 'Click_Marker_' + res;",
+        "  ",
+        "  // 選択範囲もピクセルで指定されるようになる",
+        "  var region = [[safeX-2, safeY-2], [safeX+2, safeY-2], [safeX+2, safeY+2], [safeX-2, safeY+2]];",
+        "  doc.selection.select(region);",
+        "  ",
+        "  var fillRGB = new RGBColor();",
+        "  fillRGB.red = 255; fillRGB.green = 0; fillRGB.blue = 0;",
+        "  doc.selection.fill(fillRGB);",
+        "  doc.selection.deselect();",
+        "  ",
+        "  app.preferences.rulerUnits = savedRuler; // 単位を元に戻す",
+        "  return res;",
         "})();"
     ].join("\n");
 
