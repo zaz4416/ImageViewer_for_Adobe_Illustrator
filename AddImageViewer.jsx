@@ -284,22 +284,10 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
 }
 
 
-// Canvasから親ウィンドウを確実に特定する関数
-//        var myWin = getParentWindow(GlbObj.m_Viewer.m_Canvas);
-//
-//        // 1. 親ウィンドウの絶対座標を取得
-//        var winAbsX = myWin.location.x;
-//        var winAbsY = myWin.location.y;
-function getParentWindow(obj) {
-    var curr = obj;
-    while (curr.parent) {
-        curr = curr.parent;
-    }
-    return curr; // これが Window オブジェクト
-}
-
-
-function GetMouseLocation(event, obj) {
+//------------------------------------------------
+// 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
+//------------------------------------------------
+function GetObjectLocalLocation(obj) {
     // ウィンドウ内での obj の累積相対座標を計算
     // (location は直近の親からの距離なので、親を遡って全部足す)
     var totalRelX = 0;
@@ -321,9 +309,22 @@ function GetMouseLocation(event, obj) {
         target = target.parent;
     }
 
+    return {
+        x:  totalRelX,
+        y:  totalRelY
+    };
+}
+
+
+//---------------------------------------------------------------------
+// マウスイベントのスクリーン座標を、obj（キャンバス）内のローカル座標に変換して返す
+//---------------------------------------------------------------------
+function GetMouseLocalLocation(event, obj) {
+    var objLocation = GetObjectLocalLocation(obj);
+
     // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
-    var localX = Math.floor(event.screenX - totalRelX);
-    var localY = Math.floor(event.screenY - totalRelY);
+    var localX = Math.floor(event.screenX - objLocation.x);
+    var localY = Math.floor(event.screenY - objLocation.y);
 
     return {
         x:  localX,
@@ -340,7 +341,7 @@ CViewer.prototype.OnPickUp = function(event, pObj, imageFile, pCanvas) {
     try {
         var GlbObj = pObj.GetDialogObject();
 
-        var canvasLocation = GetMouseLocation(event, GlbObj.m_Viewer.m_Canvas);
+        var canvasLocation = GetMouseLocalLocation(event, GlbObj.m_Viewer.m_Canvas);
 
         alert("Clicked at local coordinates: (" + canvasLocation.x + ", " + canvasLocation.y + ")");
 
