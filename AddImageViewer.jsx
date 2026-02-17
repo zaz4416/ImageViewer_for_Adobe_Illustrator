@@ -62,6 +62,7 @@ var LangStringsForViewer = GetWordsFromDictionary( MyDictionaryForViewer );
 var _MAX_INSTANCES = 5;
 
 
+
 // --- グローバル関数 -----------------------------------------------------------------
 
 /**
@@ -118,11 +119,12 @@ function getScreenResolution() {
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(pObj, pDialog, pPanelView, imageFile) {
+function CViewer(pObj, imageFile) {
 
     var self = this;
     self.Result = null;
-    self.xDialog = pDialog;
+    self.xDialog = pObj.m_Dialog;
+    self.GlobalScale = 0.25; // 画像を表示する際のスケーリング（25%で表示しているので、クリック座標を画像上の座標に変換するためのグローバル変数）
 
     try{
         var ISize = self.getImageSize(imageFile);
@@ -133,7 +135,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
         // --- モニター解像度を考慮したリサイズ ---
         {
             var screen = getScreenResolution();
-            var ImaseSaling = 0.25; // 画像を表示する際のスケーリング
+            var ImaseSaling = self.GlobalScale; // 画像を表示する際のスケーリング
             var maxW = screen.width  * ImaseSaling;
             var maxH = screen.height * ImaseSaling;
 
@@ -141,6 +143,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
             var targetW = imageWidth;
             var targetH = imageHeight;
 
+            // 画像のアスペクト比を保ちながら、最大幅と最大高さに収まるようにサイズを調整
             if (targetW > maxW) {
                 targetW = maxW;
                 targetH = targetW / self.aspectRatio;
@@ -150,7 +153,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 targetW = targetH * self.aspectRatio;
             }
 
-            pDialog.preferredSize = [ targetW, targetH ];
+            pObj.m_Dialog.preferredSize = [ targetW, targetH ];
         }
 
         // 画像読み込み
@@ -158,7 +161,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
 
         {
             // カスタム・カンバスを追加
-            self.m_Canvas = pPanelView.add("customview", undefined, {
+            self.m_Canvas = pObj.m_PanelView.add("customview", undefined, {
                 multiline:  false,
                 scrollable: false
             });
@@ -166,7 +169,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
             self.m_Canvas.orientation = "column";
             self.m_Canvas.alignment = ["fill", "fill"];
             var scaleX=2;
-            self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+            self.m_Canvas.size    = [ pObj.m_Dialog.preferredSize.width, pObj.m_Dialog.preferredSize.height ]; // ビューアの初期サイズ
 
             // カスタム・カンバスのonDraw
             self.m_Canvas.onDraw = function() {
@@ -311,7 +314,7 @@ function GetObjectLocalLocation(obj) {
 
     return {
         x:  totalRelX,
-        y:  totalRelY
+        y:  totalRelY + 10 // 10pxのオフセットを追加
     };
 }
 
@@ -337,16 +340,19 @@ function GetMouseLocalLocation(event, obj) {
 /**
  * 左クリックメニューの構築と表示
  */
-CViewer.prototype.OnPickUp = function(event, pObj, imageFile, pCanvas) {
+CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
     try {
         var GlbObj = pObj.GetDialogObject();
+        var pView = GlbObj.m_Viewer;
 
-        var canvasLocation = GetMouseLocalLocation(event, GlbObj.m_Viewer.m_Canvas);
+        var canvasLocation = GetMouseLocalLocation(event, pView.m_Canvas);
+        var zxzX =  Math.floor(canvasLocation.x * pView.aspectRatio / pView.GlobalScale);
+        var zxzY =  Math.floor(canvasLocation.y * pView.aspectRatio / pView.GlobalScale);
 
-        alert("Clicked at local coordinates: (" + canvasLocation.x + ", " + canvasLocation.y + ")");
+        alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
 
         // BridgeTalkでPSを呼び出し
-        getPixelColorViaPS(imageFile, canvasLocation.x, canvasLocation.y);
+        getPixelColorViaPS(imageFile, zxzX, zxzY);
 
     } catch(e) {
         alert( e.message );
@@ -426,7 +432,7 @@ function CImageViewDLg( scriptName ) {
             }
             
             // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = new CViewer( self, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             if ( self.m_Viewer === null ) {
