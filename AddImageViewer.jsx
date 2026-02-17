@@ -62,7 +62,6 @@ var LangStringsForViewer = GetWordsFromDictionary( MyDictionaryForViewer );
 var _MAX_INSTANCES = 5;
 
 
-
 // --- グローバル関数 -----------------------------------------------------------------
 
 /**
@@ -119,12 +118,11 @@ function getScreenResolution() {
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(pObj, imageFile) {
+function CViewer(pObj, pDialog, pPanelView, imageFile) {
 
     var self = this;
     self.Result = null;
-    self.xDialog = pObj.m_Dialog;
-    self.GlobalScale = 0.25; // 画像を表示する際のスケーリング（25%で表示しているので、クリック座標を画像上の座標に変換するためのグローバル変数）
+    self.xDialog = pDialog;
 
     try{
         var ISize = self.getImageSize(imageFile);
@@ -135,7 +133,7 @@ function CViewer(pObj, imageFile) {
         // --- モニター解像度を考慮したリサイズ ---
         {
             var screen = getScreenResolution();
-            var ImaseSaling = self.GlobalScale; // 画像を表示する際のスケーリング
+            var ImaseSaling = 0.25; // 画像を表示する際のスケーリング
             var maxW = screen.width  * ImaseSaling;
             var maxH = screen.height * ImaseSaling;
 
@@ -143,7 +141,6 @@ function CViewer(pObj, imageFile) {
             var targetW = imageWidth;
             var targetH = imageHeight;
 
-            // 画像のアスペクト比を保ちながら、最大幅と最大高さに収まるようにサイズを調整
             if (targetW > maxW) {
                 targetW = maxW;
                 targetH = targetW / self.aspectRatio;
@@ -153,7 +150,7 @@ function CViewer(pObj, imageFile) {
                 targetW = targetH * self.aspectRatio;
             }
 
-            pObj.m_Dialog.preferredSize = [ targetW, targetH ];
+            pDialog.preferredSize = [ targetW, targetH ];
         }
 
         // 画像読み込み
@@ -161,7 +158,7 @@ function CViewer(pObj, imageFile) {
 
         {
             // カスタム・カンバスを追加
-            self.m_Canvas = pObj.m_PanelView.add("customview", undefined, {
+            self.m_Canvas = pPanelView.add("customview", undefined, {
                 multiline:  false,
                 scrollable: false
             });
@@ -169,7 +166,7 @@ function CViewer(pObj, imageFile) {
             self.m_Canvas.orientation = "column";
             self.m_Canvas.alignment = ["fill", "fill"];
             var scaleX=2;
-            self.m_Canvas.size    = [ pObj.m_Dialog.preferredSize.width, pObj.m_Dialog.preferredSize.height ]; // ビューアの初期サイズ
+            self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
             // カスタム・カンバスのonDraw
             self.m_Canvas.onDraw = function() {
@@ -202,7 +199,9 @@ function CViewer(pObj, imageFile) {
                 switch (event.button) {
                     case 0:
                         // 左クリック
-                        self.OnPickUp(event, pObj, imageFile, self.m_Canvas); // メニュー表示へ
+                        if (self.m_ColorBox) {
+                            self.OnPickUp(event, pObj, imageFile); // メニュー表示へ
+                        }
                         break;
                     case 1:
                         // 中央（ホイール）クリック
@@ -287,6 +286,7 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
 }
 
 
+
 //------------------------------------------------
 // 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
 //------------------------------------------------
@@ -349,18 +349,92 @@ CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
         var zxzX =  Math.floor(canvasLocation.x * pView.aspectRatio / pView.GlobalScale);
         var zxzY =  Math.floor(canvasLocation.y * pView.aspectRatio / pView.GlobalScale);
 
-        alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
+        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
         
         // BridgeTalkでPSを呼び出し
-        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { pView.PickUpedColors(rgbArray);});
+        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
 
     } catch(e) {
         alert( e.message );
     }
 }
 
-CViewer.prototype.PickUpedColors = function(rgbArray) {
-    alert("Picked up color - R:" + rgbArray[0] + " G:" + rgbArray[1] + " B:" + rgbArray[2]);
+/**
+ * Photoshopと通信して指定した画像ファイルの特定座標の色を取得する
+ * @param {File} imgFile 解析対象の画像ファイルオブジェクト
+ * @param {Number} x 画像上のX座標（ピクセル）
+ * @param {Number} y 画像上のY座標（ピクセル）
+ * @param {Function} callback 結果を受け取った後に実行する関数
+ */
+function getPixelColorViaPS(imgFile, x, y, callback) {
+    // 1. 座標が数値であることを保証（undefined対策）
+    var targetX = Number(x) || 0;
+    var targetY = Number(y) || 0;
+
+    // 2. BridgeTalkの設定
+    var bt = new BridgeTalk();
+    bt.target = "photoshop";
+
+    // 3. Photoshop側で実行するスクリプト（文字列）
+    // Illustrator側の変数 imageFile, targetX, targetY を使って組み立てます
+    var psCode = [
+        "(function() {",
+        "  var f = new File('" + imgFile.fullName + "');", // URI形式で安全に指定
+        "  if (!f.exists) return 'Error: File not found (' + f.fsName + ')';",
+        "  ",
+        "  var doc = open(f);",
+        "  ",
+        "  // 1. インデックスカラー等の解析不可モードをRGBに変換",
+        "  if (doc.mode == DocumentMode.INDEXEDCOLOR || doc.mode == DocumentMode.GRAYSCALE) {",
+        "    doc.changeMode(ChangeMode.RGB);",
+        "  }",
+        "  ",
+        "  // 2. 座標を画像サイズ内に確実に収める (0 ～ width-1 / 0 ～ height-1)",
+        "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.value - 1));",
+        "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.value - 1));",
+        "  ",
+        "  // 3. サンプラーを追加（上限10個に備えて一度全削除）",
+        "  doc.colorSamplers.removeAll();",
+        "  var sampler = doc.colorSamplers.add([Number(safeX), Number(safeY)]);",
+        "  ",
+        "  // 4. RGB値を取得（0.5などの小数を防ぐため丸める）",
+        "  var r = Math.round(sampler.color.rgb.red);",
+        "  var g = Math.round(sampler.color.rgb.green);",
+        "  var b = Math.round(sampler.color.rgb.blue);",
+        "  ",
+        "  // 5. 後片付けをして結果を文字列で返す",
+        "  doc.close(SaveOptions.DONOTSAVECHANGES);",
+        "  return r + ',' + g + ',' + b;",
+        "})();"
+    ].join("\n");
+
+    bt.body = psCode;
+
+    // 4. 結果が戻ってきた時の処理
+    bt.onResult = function(resObj) {
+        if (resObj.body.indexOf("Error") !== -1) {
+            alert(resObj.body);
+            return;
+        }
+
+        var rgbArray = resObj.body.split(","); // "255,128,0" -> [255, 128, 0]
+
+        // 外部から渡された処理(callback)を実行する
+        if (typeof callback === "function") {
+            //alert("function exists. Executing callback with RGB: " + rgbArray.join(","));
+            callback(rgbArray);
+        } else {
+            alert("No callback provided. RGB: " + rgbArray.join(","));
+        }
+    };
+
+    // 5. 通信エラー時の処理
+    bt.onError = function(errObj) {
+        alert("Photoshopとの通信に失敗しました。\nPhotoshopが起動しているか確認してください。\n詳細: " + errObj.body);
+    };
+
+    // 6. 送信
+    bt.send();
 }
 
 
@@ -436,7 +510,7 @@ function CImageViewDLg( scriptName ) {
             }
             
             // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self, imageFile );
+            self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             if ( self.m_Viewer === null ) {
@@ -525,6 +599,54 @@ CImageViewDLg.prototype.onResizing = function() {
     }
 }
 
+CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
+    //alert("Picked up color - R:" + rgbArray[0] + " G:" + rgbArray[1] + " B:" + rgbArray[2]);
+
+    var self = this.GetDialogObject();
+
+    try {
+
+        // 1. 文字列を数値に変換
+        var r = Number(rgbArray[0]);
+        var g = Number(rgbArray[1]);
+        var b = Number(rgbArray[2]);
+
+        // 2. テキストラベルの更新 (RGB形式とHEX形式)
+        var hex = "#" + 
+            ("0" + r.toString(16)).slice(-2) + 
+            ("0" + g.toString(16)).slice(-2) + 
+            ("0" + b.toString(16)).slice(-2);
+        
+        if (self.m_ColorLabel) {
+            self.m_ColorLabel.text = "(" + r + ", " + g + ", " + b + ")  HEX: " + hex.toUpperCase();
+        }
+
+        // 3. 色見本パネルの背景色を更新
+        if (self.m_ColorBox) {
+            var gph = self.m_ColorBox.graphics;
+            // ScriptUIは 0.0 ～ 1.0 の範囲で指定するため 255 で割る
+            var normR = r / 255;
+            var normG = g / 255;
+            var normB = b / 255;
+            
+            var myBrush = gph.newBrush(gph.BrushType.SOLID_COLOR, [normR, normG, normB, 1]);
+            gph.backgroundColor = myBrush;
+        }
+
+        // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
+        if (app.documents.length > 0) {
+            var newColor = new RGBColor();
+            newColor.red = r;
+            newColor.green = g;
+            newColor.blue = b;
+            app.activeDocument.defaultFillColor = newColor;
+        }
+
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
     var  self = this.GetDialogObject();;
     try {
@@ -536,7 +658,7 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var self = this.GetDialogObject();
+    var self = this.GetDialogObject();;
 
     try {
         // 画像ファイル選択
@@ -599,85 +721,6 @@ CImageViewDLg.prototype.GetImageFile = function() {
 
     return imageFile;
 }
-
-
-/**
- * Photoshopと通信して指定した画像ファイルの特定座標の色を取得する
- * @param {File} imgFile 解析対象の画像ファイルオブジェクト
- * @param {Number} x 画像上のX座標（ピクセル）
- * @param {Number} y 画像上のY座標（ピクセル）
- * @param {Function} callback 結果を受け取った後に実行する関数
- */
-function getPixelColorViaPS(imgFile, x, y, callback) {
-    // 1. 座標が数値であることを保証（undefined対策）
-    var targetX = Number(x) || 0;
-    var targetY = Number(y) || 0;
-
-    // 2. BridgeTalkの設定
-    var bt = new BridgeTalk();
-    bt.target = "photoshop";
-
-    // 3. Photoshop側で実行するスクリプト（文字列）
-    // Illustrator側の変数 imageFile, targetX, targetY を使って組み立てます
-    var psCode = [
-        "(function() {",
-        "  var f = new File('" + imgFile.fullName + "');", // URI形式で安全に指定
-        "  if (!f.exists) return 'Error: File not found (' + f.fsName + ')';",
-        "  ",
-        "  var doc = open(f);",
-        "  ",
-        "  // 1. インデックスカラー等の解析不可モードをRGBに変換",
-        "  if (doc.mode == DocumentMode.INDEXEDCOLOR || doc.mode == DocumentMode.GRAYSCALE) {",
-        "    doc.changeMode(ChangeMode.RGB);",
-        "  }",
-        "  ",
-        "  // 2. 座標を画像サイズ内に確実に収める (0 ～ width-1 / 0 ～ height-1)",
-        "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.value - 1));",
-        "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.value - 1));",
-        "  ",
-        "  // 3. サンプラーを追加（上限10個に備えて一度全削除）",
-        "  doc.colorSamplers.removeAll();",
-        "  var sampler = doc.colorSamplers.add([Number(safeX), Number(safeY)]);",
-        "  ",
-        "  // 4. RGB値を取得（0.5などの小数を防ぐため丸める）",
-        "  var r = Math.round(sampler.color.rgb.red);",
-        "  var g = Math.round(sampler.color.rgb.green);",
-        "  var b = Math.round(sampler.color.rgb.blue);",
-        "  ",
-        "  // 5. 後片付けをして結果を文字列で返す",
-        "  doc.close(SaveOptions.DONOTSAVECHANGES);",
-        "  return r + ',' + g + ',' + b;",
-        "})();"
-    ].join("\n");
-
-    bt.body = psCode;
-
-    // 4. 結果が戻ってきた時の処理
-    bt.onResult = function(resObj) {
-        if (resObj.body.indexOf("Error") !== -1) {
-            alert(resObj.body);
-            return;
-        }
-        var rgbArray = resObj.body.split(","); // "255,128,0" -> [255, 128, 0]
-
-        // 外部から渡された処理(callback)を実行する
-        if (typeof callback === "function") {
-            //alert("function exists. Executing callback with RGB: " + rgbArray.join(","));
-            callback(rgbArray);
-        } else {
-            alert("No callback provided. RGB: " + rgbArray.join(","));
-        }
-    };
-
-    // 5. 通信エラー時の処理
-    bt.onError = function(errObj) {
-        alert("Photoshopとの通信に失敗しました。\nPhotoshopが起動しているか確認してください。\n詳細: " + errObj.body);
-    };
-
-    // 6. 送信
-    bt.send();
-}
-
 
 /**
  * PNGファイルが透明度(Alpha)を持っているか判定する
