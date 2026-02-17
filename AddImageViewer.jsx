@@ -350,13 +350,17 @@ CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
         var zxzY =  Math.floor(canvasLocation.y * pView.aspectRatio / pView.GlobalScale);
 
         alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
-
+        
         // BridgeTalkでPSを呼び出し
-        getPixelColorViaPS(imageFile, zxzX, zxzY);
+        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { pView.PickUpedColors(rgbArray);});
 
     } catch(e) {
         alert( e.message );
     }
+}
+
+CViewer.prototype.PickUpedColors = function(rgbArray) {
+    alert("Picked up color - R:" + rgbArray[0] + " G:" + rgbArray[1] + " B:" + rgbArray[2]);
 }
 
 
@@ -614,25 +618,37 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
     bt.target = "photoshop";
 
     // 3. Photoshop側で実行するスクリプト（文字列）
-    // - ファイルを開く
-    // - インデックスカラーならRGBへ変換（エラー対策）
-    // - 座標を画像サイズ内に収める（エラー対策）
-    // - カラーサンプラーを追加して色を取得
-    // - 全サンプラーを削除して掃除
-    var psCode = "var f = new File('" + imgFile.fullName + "');" +
-                 "if (f.exists) {" +
-                 "  var doc = open(f);" +
-                 "  if (doc.mode == DocumentMode.INDEXEDCOLOR) { doc.changeMode(ChangeMode.RGB); }" +
-                 "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.value - 1));" +
-                 "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.value - 1));" +
-                 "  var sampler = doc.colorSamplers.add([safeX, safeY]);" +
-                 "  var res = Math.round(sampler.color.rgb.red) + ',' + " +
-                 "            Math.round(sampler.color.rgb.green) + ',' + " +
-                 "            Math.round(sampler.color.rgb.blue);" +
-                 "  doc.colorSamplers.removeAll();" + 
-                 "  doc.close(SaveOptions.DONOTSAVECHANGES);" +
-                 "  res;" +
-                 "} else { 'Error: File not found'; }";
+    // Illustrator側の変数 imageFile, targetX, targetY を使って組み立てます
+    var psCode = [
+        "(function() {",
+        "  var f = new File('" + imgFile.fullName + "');", // URI形式で安全に指定
+        "  if (!f.exists) return 'Error: File not found (' + f.fsName + ')';",
+        "  ",
+        "  var doc = open(f);",
+        "  ",
+        "  // 1. インデックスカラー等の解析不可モードをRGBに変換",
+        "  if (doc.mode == DocumentMode.INDEXEDCOLOR || doc.mode == DocumentMode.GRAYSCALE) {",
+        "    doc.changeMode(ChangeMode.RGB);",
+        "  }",
+        "  ",
+        "  // 2. 座標を画像サイズ内に確実に収める (0 ～ width-1 / 0 ～ height-1)",
+        "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.value - 1));",
+        "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.value - 1));",
+        "  ",
+        "  // 3. サンプラーを追加（上限10個に備えて一度全削除）",
+        "  doc.colorSamplers.removeAll();",
+        "  var sampler = doc.colorSamplers.add([Number(safeX), Number(safeY)]);",
+        "  ",
+        "  // 4. RGB値を取得（0.5などの小数を防ぐため丸める）",
+        "  var r = Math.round(sampler.color.rgb.red);",
+        "  var g = Math.round(sampler.color.rgb.green);",
+        "  var b = Math.round(sampler.color.rgb.blue);",
+        "  ",
+        "  // 5. 後片付けをして結果を文字列で返す",
+        "  doc.close(SaveOptions.DONOTSAVECHANGES);",
+        "  return r + ',' + g + ',' + b;",
+        "})();"
+    ].join("\n");
 
     bt.body = psCode;
 
@@ -644,14 +660,13 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
         }
         var rgbArray = resObj.body.split(","); // "255,128,0" -> [255, 128, 0]
 
-        alert("Pixel Color at (" + targetX + ", " + targetY + "): R=" + rgbArray[0] + " G=" + rgbArray[1] + " B=" + rgbArray[2]);
-        
-        // 外部から渡されたコールバック関数を実行
-        /*
+        // 外部から渡された処理(callback)を実行する
         if (typeof callback === "function") {
+            //alert("function exists. Executing callback with RGB: " + rgbArray.join(","));
             callback(rgbArray);
+        } else {
+            alert("No callback provided. RGB: " + rgbArray.join(","));
         }
-        */
     };
 
     // 5. 通信エラー時の処理
