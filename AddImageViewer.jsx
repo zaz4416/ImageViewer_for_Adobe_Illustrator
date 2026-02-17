@@ -285,6 +285,11 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
 
 
 // Canvasから親ウィンドウを確実に特定する関数
+//        var myWin = getParentWindow(GlbObj.m_Viewer.m_Canvas);
+//
+//        // 1. 親ウィンドウの絶対座標を取得
+//        var winAbsX = myWin.location.x;
+//        var winAbsY = myWin.location.y;
 function getParentWindow(obj) {
     var curr = obj;
     while (curr.parent) {
@@ -293,6 +298,41 @@ function getParentWindow(obj) {
     return curr; // これが Window オブジェクト
 }
 
+
+function GetMouseLocation(event, obj) {
+    // ウィンドウ内での obj の累積相対座標を計算
+    // (location は直近の親からの距離なので、親を遡って全部足す)
+    var totalRelX = 0;
+    var totalRelY = 0;
+    var target = obj;
+
+     while (target && target.type !== 'window') {
+        totalRelX += target.location.x;
+        totalRelY += target.location.y;
+         
+        // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
+        if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
+            // margins.left / top が設定されている場合は加算
+            if (target.parent.margins) {
+                totalRelX += target.parent.margins.left;
+                totalRelY += target.parent.margins.top;
+            }
+        }
+        target = target.parent;
+    }
+
+    // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
+    var localX = Math.floor(event.screenX - totalRelX);
+    var localY = Math.floor(event.screenY - totalRelY);
+
+    return {
+        x:  localX,
+        y:  localY
+    };
+}
+
+
+
 /**
  * 左クリックメニューの構築と表示
  */
@@ -300,52 +340,12 @@ CViewer.prototype.OnPickUp = function(event, pObj, imageFile, pCanvas) {
     try {
         var GlbObj = pObj.GetDialogObject();
 
-        alert("Clicked at screen coordinates: (" + event.screenX + ", " + event.screenY + ")");
+        var canvasLocation = GetMouseLocation(event, GlbObj.m_Viewer.m_Canvas);
 
-        var myWin = getParentWindow(GlbObj.m_Viewer.m_Canvas);
-
-        // 1. 親ウィンドウの絶対座標を取得
-        var winAbsX = myWin.location.x;
-        var winAbsY = myWin.location.y;
-
-        alert("Window absolute position: (" + winAbsX + ", " + winAbsY + ")");
-
-        // 2. ウィンドウ内での m_Canvas の累積相対座標を計算
-        // (location は直近の親からの距離なので、親を遡って全部足す)
-        var totalRelX = 0;
-        var totalRelY = 0;
-        var target = GlbObj.m_Viewer.m_Canvas;
-
-        alert("Calculating relative position...");
-
-        while (target && target.type !== 'window') {
-            totalRelX += target.location.x;
-            totalRelY += target.location.y;
-            alert("Current target: " + target.type + ", location: (" + target.location.x + ", " + target.location.y + "), totalRel: (" + totalRelX + ", " + totalRelY + ")");
-
-            // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
-            if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
-                // margins.left / top が設定されている場合は加算
-                if (target.parent.margins) {
-                    totalRelX += target.parent.margins.left;
-                    totalRelY += target.parent.margins.top;
-                }
-
-                alert("Found parent with margins: " + target.parent.type + ", margins: " + target.parent.margins.left + ", " + target.parent.margins.top + "), totalRel: (" + totalRelX + ", " + totalRelY + ")");
-            }
-
-            target = target.parent;
-        }
-
-
-        // 3. マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
-        var localX = Math.floor(event.screenX - totalRelX);
-        var localY = Math.floor(event.screenY - totalRelY);
-
-        alert("Clicked at local coordinates: (" + localX + ", " + localY + ")");
+        alert("Clicked at local coordinates: (" + canvasLocation.x + ", " + canvasLocation.y + ")");
 
         // BridgeTalkでPSを呼び出し
-        getPixelColorViaPS(imageFile, localX, localY);
+        getPixelColorViaPS(imageFile, canvasLocation.x, canvasLocation.y);
 
     } catch(e) {
         alert( e.message );
