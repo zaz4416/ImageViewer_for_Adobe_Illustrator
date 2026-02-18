@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/17
+// Ver.1.0 : 2026/02/18
 
 #target illustrator
 #targetengine "main"
@@ -289,7 +289,6 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
 }
 
 
-
 //------------------------------------------------
 // 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
 //------------------------------------------------
@@ -326,13 +325,11 @@ function GetObjectLocalLocation(obj) {
 // マウスイベントのスクリーン座標を、obj（キャンバス）内のローカル座標に変換して返す
 //---------------------------------------------------------------------
 function GetMouseLocalLocation(event, obj) {
-    var objLocation = GetObjectLocalLocation(obj);
-
-    //alert("Object location relative to window: (" + objLocation.x + ", " + objLocation.y + ")"); // デバッグ用：オブジェクトのウィンドウ内位置を表示
+    var absLocation = GetObjectLocalLocation(obj);
 
     // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
-    var localX = Math.floor(event.screenX - objLocation.x);
-    var localY = Math.floor(event.screenY - objLocation.y);
+    var localX = Math.floor(event.screenX - absLocation.x);
+    var localY = Math.floor(event.screenY - absLocation.y);
 
     return {
         x:  localX,
@@ -347,33 +344,28 @@ function GetMouseLocalLocation(event, obj) {
  */
 CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
     try {
+        var GlbObj  = pObj.GetDialogObject();
+        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
 
-        alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
-
-        var GlbObj = pObj.GetDialogObject();
-        var pView = GlbObj.m_Viewer;
+        var pView   = GlbObj.m_Viewer;
         var pCanvas = GlbObj.m_Viewer.m_Canvas;
-
-        var canvasLocation = GetMouseLocalLocation(event, pView.m_Canvas);
 
         var imageWidth   = pView.m_Image.width;      // 画像の幅
         var imageHeight  = pView.m_Image.height;     // 画像の高さ
 
-        alert("Image size: (" + imageWidth + ", " + imageHeight + ")"); // デバッグ用：画像のサイズを表示
-
         var canvasWidth  = pCanvas.size.width;     // キャンバスの幅
         var canvasHeight = pCanvas.size.height;    // キャンバスの高さ
 
-        alert("Canvas local coordinates: (" + canvasLocation.x + ", " + canvasLocation.y + ")");
+        var canvasLocation = GetMouseLocalLocation(event, pCanvas);
+      
+        canvasWidth =550;
+        canvasHeight=550;
+
+        //alert("Canvas image size: (" + canvasWidth + ", " + canvasHeight + ")"); // デバッグ用：画像のサイズを表示
     
-        //var zxzX =  Math.floor(canvasLocation.x * pView.aspectRatio / pView.GlobalScale);
-        //var zxzY =  Math.floor(canvasLocation.y * pView.aspectRatio / pView.GlobalScale);
-
-        var zxzX =  Math.floor(imageWidth * (canvasLocation.x / canvasWidth));
-        var zxzY =  Math.floor(imageHeight * (canvasLocation.y / canvasHeight));
-
-
-        alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
+        var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
+        var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
+        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
         
         // BridgeTalkでPSを呼び出し
         getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
