@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/18
+// Ver.1.0 : 2026/02/19
 
 #target illustrator
 #targetengine "main"
@@ -65,6 +65,22 @@ var _MAX_INSTANCES = 5;
 // --- グローバル関数 -----------------------------------------------------------------
 
 /**
+ * 現在のスケーリング倍率（UI係数）を取得する
+ * @param {Control} control 表示済みのUIパーツ
+ * @returns {Number} 倍率 (1.0, 1.25, 2.0 など)
+ */
+function getUIScale(control) {
+    if (!control.screenBounds) return 1.25;
+    
+    // 物理幅 / 論理幅 を計算
+    var scale = control.screenBounds.width / control.size.width;
+    
+    // 小数点第2位で丸める（誤差対策）
+    return Math.round(scale * 100) / 100;
+}
+
+
+/**
  * 実行中スクリプトの親フォルダ（Folderオブジェクト）を返す。
  * なお、戻り値の最後には/が付与される。
  */
@@ -120,13 +136,13 @@ function getScreenResolution() {
 // コンストラクタ
 function CViewer(pObj, pDialog, pPanelView, imageFile) {
 
-    var self = this;
-    self.Result = null;
-    self.xDialog = pDialog;
-    self.GlobalScale = 0.25 // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
-    self.m_Image = null; // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
-    self.mousePos = { x: 0, y: 0 }; // マウスのローカル座標を保存するオブジェクト
-    
+    var self         = this;
+    self.Result      = null;
+    self.xDialog     = pDialog;
+    self.GlobalScale = 0.25;            // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
+    self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
+    self.mousePos    = { x: 0, y: 0 };  // マウスのローカル座標を保存するオブジェクト
+    self.m_UIScale   = 1.25;            // ディスプレイのスケーリング倍率を保存する（例: 1.25）
 
     try{
         self.m_Image = self.getImageSize(imageFile);
@@ -154,6 +170,9 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 targetW = targetH * self.aspectRatio;
             }
 
+            targetH = Math.floor(targetH);
+            targetW = Math.floor(targetW);
+
             pDialog.preferredSize = [ targetW, targetH ];
         }
 
@@ -168,8 +187,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
             });
 
             self.m_Canvas.orientation = "column";
-            self.m_Canvas.alignment = ["fill", "fill"];
-            var scaleX=2;
+            //self.m_Canvas.alignment = ["fill", "fill"];
             self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
             // カスタム・カンバスのonDraw
@@ -186,9 +204,12 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
 
                 if ( self.uiImage ) {
+
+                    self.m_UIScale = getUIScale(self.m_Canvas); // UIのスケーリングを取得しておく（例: 1.25）
+
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
-
+                    
                     /*
                     if (self.mousePos.x !== 0 && self.mousePos.y !== 0) {
                         var p = g.newPen(g.PenType.SOLID_COLOR, [1, 1, 1, 1], 1); // 白い線
@@ -201,9 +222,8 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     }
                     */
 
-                    g.drawString(self.mousePos.x + "," + self.mousePos.y,  blackPen, 20,20, myFont);    // デバッグ用にマウスの座標を表示
-                    g.drawString(canv.size.width + " x " + canv.size.height,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
-
+                    //g.drawString(self.mousePos.x + "," + self.mousePos.y,  blackPen, 20,20, myFont);    // デバッグ用にマウスの座標を表示
+                    //g.drawString(canv.size.width + " x " + canv.size.height,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
                 }
             }
 
@@ -237,8 +257,6 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
             // マウスが動いた時の処理
             self.m_Canvas.addEventListener("mousemove", function(event) {
                 // スクリーン座標からCanvas内の相対座標に変換して「保存」する
-                // この "mousePos" という名前は自由ですが、慣習的によく使われます
-
                 var canvasLocation = GetMouseLocalLocation(event, self.m_Canvas);
                 self.mousePos = {
                     x: canvasLocation.x,
@@ -380,20 +398,11 @@ CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
 
         var pView   = GlbObj.m_Viewer;
         var pCanvas = GlbObj.m_Viewer.m_Canvas;
-
         var imageWidth   = pView.m_Image.width;      // 画像の幅
         var imageHeight  = pView.m_Image.height;     // 画像の高さ
-
-        var canvasWidth  = pCanvas.size.width;     // キャンバスの幅
-        var canvasHeight = pCanvas.size.height;    // キャンバスの高さ
-
-        var canvasLocation = GetMouseLocalLocation(event, pCanvas);
-      
-        canvasWidth =550;
-        canvasHeight=550;
-
-        //alert("Canvas image size: (" + canvasWidth + ", " + canvasHeight + ")"); // デバッグ用：画像のサイズを表示
-    
+        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ
+        var canvasLocation = GetMouseLocalLocation(event, pCanvas);    
         var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
         var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
         //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
@@ -825,6 +834,9 @@ function main()
             Obj.SetDialogTitle( "[" + Index + "]" + Title );
 
             Obj.show();                     // インスタンスを表示
+
+            // palette なら show() の直後でもここが実行される
+            $.writeln("表示されました！"); 
         }else {
             alert( LangStringsForViewer.Msg_cant_run );
         }
