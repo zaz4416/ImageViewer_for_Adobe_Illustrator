@@ -125,6 +125,8 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.xDialog = pDialog;
     self.GlobalScale = 0.25 // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
     self.m_Image = null; // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
+    self.mousePos = { x: 0, y: 0 }; // マウスのローカル座標を保存するオブジェクト
+    
 
     try{
         self.m_Image = self.getImageSize(imageFile);
@@ -187,7 +189,21 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
 
-                    //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+                    /*
+                    if (self.mousePos.x !== 0 && self.mousePos.y !== 0) {
+                        var p = g.newPen(g.PenType.SOLID_COLOR, [1, 1, 1, 1], 1); // 白い線
+                        // 横線
+                        g.moveTo(self.mousePos.x - 10, self.mousePos.y);
+                        g.lineTo(self.mousePos.x + 10, self.mousePos.y);
+                        // 縦線
+                        g.moveTo(self.mousePos.x, self.mousePos.y - 10);
+                        g.lineTo(self.mousePos.x, self.mousePos.y + 10);
+                    }
+                    */
+
+                    g.drawString(self.mousePos.x + "," + self.mousePos.y,  blackPen, 20,20, myFont);    // デバッグ用にマウスの座標を表示
+                    g.drawString(canv.size.width + " x " + canv.size.height,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
+
                 }
             }
 
@@ -216,6 +232,21 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     default:
                         break;
                 }
+            });
+
+            // マウスが動いた時の処理
+            self.m_Canvas.addEventListener("mousemove", function(event) {
+                // スクリーン座標からCanvas内の相対座標に変換して「保存」する
+                // この "mousePos" という名前は自由ですが、慣習的によく使われます
+
+                var canvasLocation = GetMouseLocalLocation(event, self.m_Canvas);
+                self.mousePos = {
+                    x: canvasLocation.x,
+                    y: canvasLocation.y
+                };
+                
+                // 再描画を依頼（これをしないと onDraw が走らない）
+                self.m_Canvas.notify("onDraw");
             });
         }
     }
