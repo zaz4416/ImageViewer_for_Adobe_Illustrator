@@ -126,8 +126,57 @@ function getScreenResolution() {
     };
 }
 
-// ---------------------------------------------------------------------------------
 
+//------------------------------------------------
+// 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
+//------------------------------------------------
+function GetObjectLocalLocation(obj) {
+    // ウィンドウ内での obj の累積相対座標を計算
+    // (location は直近の親からの距離なので、親を遡って全部足す)
+    var totalRelX = 0;
+    var totalRelY = 0;
+    var target = obj;
+
+     while (target && target.type !== 'window') {
+        totalRelX += target.location.x;
+        totalRelY += target.location.y;
+         
+        // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
+        if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
+            // margins.left / top が設定されている場合は加算
+            if (target.parent.margins) {
+                totalRelX += target.parent.margins.left;
+                totalRelY += target.parent.margins.top;
+            }
+        }
+        target = target.parent;
+    }
+
+    return {
+        x:  totalRelX,
+        y:  totalRelY + 10 // 10pxのオフセットを追加
+    };
+}
+
+
+//---------------------------------------------------------------------
+// マウスイベントのスクリーン座標を、obj（キャンバス）内のローカル座標に変換して返す
+//---------------------------------------------------------------------
+function GetMouseLocalLocation(event, obj) {
+    var absLocation = GetObjectLocalLocation(obj);
+
+    // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
+    var localX = Math.floor(event.screenX - absLocation.x);
+    var localY = Math.floor(event.screenY - absLocation.y);
+
+    return {
+        x:  localX,
+        y:  localY
+    };
+}
+
+
+// ---------------------------------------------------------------------------------
 
 //-----------------------------------
 // クラス CViewer
@@ -336,56 +385,6 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
         alert( e.message );
     }
 }
-
-
-//------------------------------------------------
-// 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
-//------------------------------------------------
-function GetObjectLocalLocation(obj) {
-    // ウィンドウ内での obj の累積相対座標を計算
-    // (location は直近の親からの距離なので、親を遡って全部足す)
-    var totalRelX = 0;
-    var totalRelY = 0;
-    var target = obj;
-
-     while (target && target.type !== 'window') {
-        totalRelX += target.location.x;
-        totalRelY += target.location.y;
-         
-        // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
-        if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
-            // margins.left / top が設定されている場合は加算
-            if (target.parent.margins) {
-                totalRelX += target.parent.margins.left;
-                totalRelY += target.parent.margins.top;
-            }
-        }
-        target = target.parent;
-    }
-
-    return {
-        x:  totalRelX,
-        y:  totalRelY + 10 // 10pxのオフセットを追加
-    };
-}
-
-
-//---------------------------------------------------------------------
-// マウスイベントのスクリーン座標を、obj（キャンバス）内のローカル座標に変換して返す
-//---------------------------------------------------------------------
-function GetMouseLocalLocation(event, obj) {
-    var absLocation = GetObjectLocalLocation(obj);
-
-    // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
-    var localX = Math.floor(event.screenX - absLocation.x);
-    var localY = Math.floor(event.screenY - absLocation.y);
-
-    return {
-        x:  localX,
-        y:  localY
-    };
-}
-
 
 
 /**
@@ -668,11 +667,13 @@ CImageViewDLg.prototype.onResizing = function() {
 }
 
 CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
-    //alert("Picked up color - R:" + rgbArray[0] + " G:" + rgbArray[1] + " B:" + rgbArray[2]);
-
     var self = this.GetDialogObject();
 
     try {
+
+        // ★対策1: Illustratorを最前面に呼び戻す
+        // これをしないと、ドキュメントがあっても「無い」と判定されることがあります
+        BridgeTalk.bringToFront("illustrator");
 
         // 1. 文字列を数値に変換
         var r = Number(rgbArray[0]);
@@ -703,11 +704,17 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
 
         // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
         if (app.documents.length > 0) {
+            var doc = app.activeDocument;
             var newColor = new RGBColor();
             newColor.red = r;
             newColor.green = g;
             newColor.blue = b;
-            app.activeDocument.defaultFillColor = newColor;
+
+            // 塗り色を適用
+            doc.defaultFillColor = newColor;
+            
+            // 画面を更新して反映を即座に見せる
+            app.redraw();
         }
 
     } catch(e) {
