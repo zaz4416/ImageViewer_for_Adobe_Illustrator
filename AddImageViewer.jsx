@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/10
+// Ver.1.0 : 2026/02/19
 
 #target illustrator
 #targetengine "main"
@@ -65,6 +65,22 @@ var _MAX_INSTANCES = 5;
 // --- グローバル関数 -----------------------------------------------------------------
 
 /**
+ * 現在のスケーリング倍率（UI係数）を取得する
+ * @param {Control} control 表示済みのUIパーツ
+ * @returns {Number} 倍率 (1.0, 1.25, 2.0 など)
+ */
+function getUIScale(control) {
+    if (!control.screenBounds) return 1.25;
+    
+    // 物理幅 / 論理幅 を計算
+    var scale = control.screenBounds.width / control.size.width;
+    
+    // 小数点第2位で丸める（誤差対策）
+    return Math.round(scale * 100) / 100;
+}
+
+
+/**
  * 実行中スクリプトの親フォルダ（Folderオブジェクト）を返す。
  * なお、戻り値の最後には/が付与される。
  */
@@ -110,8 +126,57 @@ function getScreenResolution() {
     };
 }
 
-// ---------------------------------------------------------------------------------
 
+//------------------------------------------------
+// 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
+//------------------------------------------------
+function GetObjectLocalLocation(obj) {
+    // ウィンドウ内での obj の累積相対座標を計算
+    // (location は直近の親からの距離なので、親を遡って全部足す)
+    var totalRelX = 0;
+    var totalRelY = 0;
+    var target = obj;
+
+     while (target && target.type !== 'window') {
+        totalRelX += target.location.x;
+        totalRelY += target.location.y;
+         
+        // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
+        if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
+            // margins.left / top が設定されている場合は加算
+            if (target.parent.margins) {
+                totalRelX += target.parent.margins.left;
+                totalRelY += target.parent.margins.top;
+            }
+        }
+        target = target.parent;
+    }
+
+    return {
+        x:  totalRelX,
+        y:  totalRelY + 10 // 10pxのオフセットを追加
+    };
+}
+
+
+//---------------------------------------------------------------------
+// マウスイベントのスクリーン座標を、obj（キャンバス）内のローカル座標に変換して返す
+//---------------------------------------------------------------------
+function GetMouseLocalLocation(event, obj) {
+    var absLocation = GetObjectLocalLocation(obj);
+
+    // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
+    var localX = Math.floor(event.screenX - absLocation.x);
+    var localY = Math.floor(event.screenY - absLocation.y);
+
+    return {
+        x:  localX,
+        y:  localY
+    };
+}
+
+
+// ---------------------------------------------------------------------------------
 
 //-----------------------------------
 // クラス CViewer
@@ -120,20 +185,24 @@ function getScreenResolution() {
 // コンストラクタ
 function CViewer(pObj, pDialog, pPanelView, imageFile) {
 
-    var self = this;
-    self.Result = null;
-    self.xDialog = pDialog;
+    var self         = this;
+    self.Result      = null;
+    self.xDialog     = pDialog;
+    self.GlobalScale = 0.25;            // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
+    self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
+    self.mousePos    = { x: 0, y: 0 };  // マウスのローカル座標を保存するオブジェクト
+    self.m_UIScale   = 1.25;            // ディスプレイのスケーリング倍率を保存する（例: 1.25）
 
     try{
-        var ISize = self.getImageSize(imageFile);
-        var imageWidth   = ISize.width;      // 画像の幅
-        var imageHeight  = ISize.height;     // 画像の高さ
-        self.aspectRatio = ISize.ratio;      // 画像の縦横比
+        self.m_Image = self.getImageSize(imageFile);
+        var imageWidth   = self.m_Image.width;      // 画像の幅
+        var imageHeight  = self.m_Image.height;     // 画像の高さ
+        self.aspectRatio = self.m_Image.ratio;      // 画像の縦横比
 
         // --- モニター解像度を考慮したリサイズ ---
         {
             var screen = getScreenResolution();
-            var ImaseSaling = 0.25; // 画像を表示する際のスケーリング
+            var ImaseSaling = self.GlobalScale; // 画像を表示する際のスケーリング
             var maxW = screen.width  * ImaseSaling;
             var maxH = screen.height * ImaseSaling;
 
@@ -150,6 +219,9 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 targetW = targetH * self.aspectRatio;
             }
 
+            targetH = Math.floor(targetH);
+            targetW = Math.floor(targetW);
+
             pDialog.preferredSize = [ targetW, targetH ];
         }
 
@@ -164,8 +236,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
             });
 
             self.m_Canvas.orientation = "column";
-            self.m_Canvas.alignment = ["fill", "fill"];
-            var scaleX=2;
+            //self.m_Canvas.alignment = ["fill", "fill"];
             self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
 
             // カスタム・カンバスのonDraw
@@ -182,10 +253,26 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
 
                 if ( self.uiImage ) {
+
+                    self.m_UIScale = getUIScale(self.m_Canvas); // UIのスケーリングを取得しておく（例: 1.25）
+
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
+                    
+                    /*
+                    if (self.mousePos.x !== 0 && self.mousePos.y !== 0) {
+                        var p = g.newPen(g.PenType.SOLID_COLOR, [1, 1, 1, 1], 1); // 白い線
+                        // 横線
+                        g.moveTo(self.mousePos.x - 10, self.mousePos.y);
+                        g.lineTo(self.mousePos.x + 10, self.mousePos.y);
+                        // 縦線
+                        g.moveTo(self.mousePos.x, self.mousePos.y - 10);
+                        g.lineTo(self.mousePos.x, self.mousePos.y + 10);
+                    }
+                    */
 
-                    //g.drawString(canv.size.width,  blackPen, 20,20, myFont);    // デバッグ用に文字を表示
+                    //g.drawString(self.mousePos.x + "," + self.mousePos.y,  blackPen, 20,20, myFont);    // デバッグ用にマウスの座標を表示
+                    //g.drawString(canv.size.width + " x " + canv.size.height,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
                 }
             }
 
@@ -199,6 +286,10 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 switch (event.button) {
                     case 0:
                         // 左クリック
+                        //if (self.m_ColorBox) 
+                        {
+                            self.OnPickUp(event, pObj, imageFile); // メニュー表示へ
+                        }
                         break;
                     case 1:
                         // 中央（ホイール）クリック
@@ -210,6 +301,19 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     default:
                         break;
                 }
+            });
+
+            // マウスが動いた時の処理
+            self.m_Canvas.addEventListener("mousemove", function(event) {
+                // スクリーン座標からCanvas内の相対座標に変換して「保存」する
+                var canvasLocation = GetMouseLocalLocation(event, self.m_Canvas);
+                self.mousePos = {
+                    x: canvasLocation.x,
+                    y: canvasLocation.y
+                };
+                
+                // 再描画を依頼（これをしないと onDraw が走らない）
+                self.m_Canvas.notify("onDraw");
             });
         }
     }
@@ -280,6 +384,124 @@ CViewer.prototype.showContextMenu = function(event, pObj) {
     } catch(e) {
         alert( e.message );
     }
+}
+
+
+/**
+ * 左クリックメニューの構築と表示
+ */
+CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
+    try {
+        var GlbObj  = pObj.GetDialogObject();
+        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
+
+        var pView   = GlbObj.m_Viewer;
+        var pCanvas = GlbObj.m_Viewer.m_Canvas;
+        var imageWidth   = pView.m_Image.width;      // 画像の幅
+        var imageHeight  = pView.m_Image.height;     // 画像の高さ
+        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ
+        var canvasLocation = GetMouseLocalLocation(event, pCanvas);    
+        var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
+        var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
+        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
+        
+        // BridgeTalkでPSを呼び出し
+        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
+
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+/**
+ * Photoshopと通信して指定した画像ファイルの特定座標の色を取得する
+ * @param {File} imgFile 解析対象の画像ファイルオブジェクト
+ * @param {Number} x 画像上のX座標（ピクセル）
+ * @param {Number} y 画像上のY座標（ピクセル）
+ * @param {Function} callback 結果を受け取った後に実行する関数
+ */
+function getPixelColorViaPS(imgFile, x, y, callback) {
+    // 1. 座標が数値であることを保証（undefined対策）
+    var targetX = Number(x) || 0;
+    var targetY = Number(y) || 0;
+
+    // 2. BridgeTalkの設定
+    var bt = new BridgeTalk();
+    bt.target = "photoshop";
+
+    // 3. Photoshop側で実行するスクリプト（文字列）
+    // Illustrator側の変数 imageFile, targetX, targetY を使って組み立てます
+    var psCode = [
+        "(function() {",
+        "  var savedRuler = app.preferences.rulerUnits;",
+        "  app.preferences.rulerUnits = Units.PIXELS; // 単位をピクセルに強制",
+        "  ",
+        "  var f = new File('" + imgFile.fullName + "');",
+        "  if (!f.exists) return 'Error: File not found';",
+        "  ",
+        "  var doc = open(f, undefined, false);",
+        "  app.activeDocument = doc;",
+        "  ",
+        "  if (doc.mode == DocumentMode.INDEXEDCOLOR) doc.changeMode(ChangeMode.RGB);",
+        "  ",
+        "  // doc.width.as('px') を使うことで確実にピクセル数と比較",
+        "  var w = doc.width.as('px');",
+        "  var h = doc.height.as('px');",
+        "  var safeX = Math.max(0, Math.min(" + targetX + ", w - 1));",
+        "  var safeY = Math.max(0, Math.min(" + targetY + ", h - 1));",
+        "  ",
+        "  doc.colorSamplers.removeAll();",
+        "  var sampler = doc.colorSamplers.add([safeX, safeY]);",
+        "  ",
+        "  var res = Math.round(sampler.color.rgb.red) + ',' + ",
+        "            Math.round(sampler.color.rgb.green) + ',' + ",
+        "            Math.round(sampler.color.rgb.blue);",
+        "  ",
+        "  var markerLayer = doc.artLayers.add();",
+        "  markerLayer.name = 'Click_Marker_' + res;",
+        "  ",
+        "  // 選択範囲もピクセルで指定されるようになる",
+        "  var region = [[safeX-2, safeY-2], [safeX+2, safeY-2], [safeX+2, safeY+2], [safeX-2, safeY+2]];",
+        "  doc.selection.select(region);",
+        "  ",
+        "  var fillRGB = new RGBColor();",
+        "  fillRGB.red = 255; fillRGB.green = 0; fillRGB.blue = 0;",
+        "  doc.selection.fill(fillRGB);",
+        "  doc.selection.deselect();",
+        "  ",
+        "  app.preferences.rulerUnits = savedRuler; // 単位を元に戻す",
+        "  return res;",
+        "})();"
+    ].join("\n");
+
+    bt.body = psCode;
+
+    // 4. 結果が戻ってきた時の処理
+    bt.onResult = function(resObj) {
+        if (resObj.body.indexOf("Error") !== -1) {
+            alert(resObj.body);
+            return;
+        }
+
+        var rgbArray = resObj.body.split(","); // "255,128,0" -> [255, 128, 0]
+
+        // 外部から渡された処理(callback)を実行する
+        if (typeof callback === "function") {
+            //alert("function exists. Executing callback with RGB: " + rgbArray.join(","));
+            callback(rgbArray);
+        } else {
+            alert("No callback provided. RGB: " + rgbArray.join(","));
+        }
+    };
+
+    // 5. 通信エラー時の処理
+    bt.onError = function(errObj) {
+        alert("Photoshopとの通信に失敗しました。\nPhotoshopが起動しているか確認してください。\n詳細: " + errObj.body);
+    };
+
+    // 6. 送信
+    bt.send();
 }
 
 
@@ -444,6 +666,62 @@ CImageViewDLg.prototype.onResizing = function() {
     }
 }
 
+CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
+    var self = this.GetDialogObject();
+
+    try {
+
+        // ★対策1: Illustratorを最前面に呼び戻す
+        // これをしないと、ドキュメントがあっても「無い」と判定されることがあります
+        BridgeTalk.bringToFront("illustrator");
+
+        // 1. 文字列を数値に変換
+        var r = Number(rgbArray[0]);
+        var g = Number(rgbArray[1]);
+        var b = Number(rgbArray[2]);
+
+        // 2. テキストラベルの更新 (RGB形式とHEX形式)
+        var hex = "#" + 
+            ("0" + r.toString(16)).slice(-2) + 
+            ("0" + g.toString(16)).slice(-2) + 
+            ("0" + b.toString(16)).slice(-2);
+        
+        if (self.m_ColorLabel) {
+            self.m_ColorLabel.text = "(" + r + ", " + g + ", " + b + ")  HEX: " + hex.toUpperCase();
+        }
+
+        // 3. 色見本パネルの背景色を更新
+        if (self.m_ColorBox) {
+            var gph = self.m_ColorBox.graphics;
+            // ScriptUIは 0.0 ～ 1.0 の範囲で指定するため 255 で割る
+            var normR = r / 255;
+            var normG = g / 255;
+            var normB = b / 255;
+            
+            var myBrush = gph.newBrush(gph.BrushType.SOLID_COLOR, [normR, normG, normB, 1]);
+            gph.backgroundColor = myBrush;
+        }
+
+        // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
+        if (app.documents.length > 0) {
+            var doc = app.activeDocument;
+            var newColor = new RGBColor();
+            newColor.red = r;
+            newColor.green = g;
+            newColor.blue = b;
+
+            // 塗り色を適用
+            doc.defaultFillColor = newColor;
+            
+            // 画面を更新して反映を即座に見せる
+            app.redraw();
+        }
+
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
     var  self = this.GetDialogObject();;
     try {
@@ -563,6 +841,9 @@ function main()
             Obj.SetDialogTitle( "[" + Index + "]" + Title );
 
             Obj.show();                     // インスタンスを表示
+
+            // palette なら show() の直後でもここが実行される
+            $.writeln("表示されました！"); 
         }else {
             alert( LangStringsForViewer.Msg_cant_run );
         }
