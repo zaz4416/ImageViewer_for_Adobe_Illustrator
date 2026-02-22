@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/19
+// Ver.1.0 : 2026/02/22
 
 #target illustrator
 #targetengine "main"
@@ -60,6 +60,10 @@ var LangStringsForViewer = GetWordsFromDictionary( MyDictionaryForViewer );
 
 // オブジェクトの最大保持数
 var _MAX_INSTANCES = 5;
+
+// ディスプレイのスケーリング倍率を保存する
+var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定   
+
 
 
 // --- グローバル関数 -----------------------------------------------------------------
@@ -183,15 +187,15 @@ function GetMouseLocalLocation(event, obj) {
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(pObj, pDialog, pPanelView, imageFile) {
-
+function CViewer(pObj, imageFile) {
     var self         = this;
+    var pDialog      = pObj.m_Dialog;
+    var pPanelView   = pObj.m_PanelView;
     self.Result      = null;
-    self.xDialog     = pDialog;
     self.GlobalScale = 0.25;            // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
     self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
     self.mousePos    = { x: 0, y: 0 };  // マウスのローカル座標を保存するオブジェクト
-    self.m_UIScale   = 1.25;            // ディスプレイのスケーリング倍率を保存する（例: 1.25）
+    self.m_UIScale   = _UIScale;        // ディスプレイのスケーリング倍率を保存する
 
     try{
         self.m_Image = self.getImageSize(imageFile);
@@ -577,7 +581,7 @@ function CImageViewDLg( scriptName ) {
             }
             
             // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = new CViewer( self, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             if ( self.m_Viewer === null ) {
@@ -750,7 +754,7 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
             self.m_PanelView.layout.layout(true);
 
             // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self, self.m_Dialog, self.m_PanelView, imageFile );
+            self.m_Viewer = new CViewer( self, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             // 4. レイアウトを更新
