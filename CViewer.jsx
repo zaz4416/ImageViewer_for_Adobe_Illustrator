@@ -9,7 +9,9 @@
 
 
 // ディスプレイのスケーリング倍率を保存する
-var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定   
+var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定 
+
+#include "CpopMenu.jsx"   // 共通のポップアップメニュークラス
 
 
 
@@ -359,46 +361,4 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
 }
 
 
-//-----------------------------------
-// クラス CPopMenu
-//-----------------------------------
 
-// コンストラクタ
-
-function CPopMenu( posX, posY ) {
-    var self = this;
-
-    self.m_Menu = new Window("palette", undefined, undefined, {borderless: true});
-    self.m_Menu.orientation = "column";
-    self.m_Menu.alignChildren = "fill";
-    self.m_Menu.spacing = 0;
-    self.m_Menu.margins = 2; // 境界線
-
-    // 表示位置の決定（マウスのクリック位置を計算）
-    // event から座標を取得し、スクリーン座標へ変換
-    self.m_Menu.location = [posX, posY];
-
-    // フォーカスが外れたら（メニュー外をクリックしたら）閉じる
-    self.m_Menu.onDeactivate = function() { self.m_Menu.close(); }
-}
-
-CPopMenu.prototype.AddtMenu = function(MenuString, func) {
-    var self = this;
-    var btn = null;
-
-    try {
-        btn = self.m_Menu.add("button", undefined, MenuString);
-        btn.onClick = function() {
-            self.m_Menu.close();
-            if (typeof func === "function") func();
-        };
-    } catch(e) {
-        alert( e.message );
-    }
-
-    return btn;
-}
-
-CPopMenu.prototype.show = function() {
-    return this.m_Menu.show();
-}
