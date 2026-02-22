@@ -218,6 +218,90 @@ CViewer.prototype.GetCanvas = function() {
 }
 
 
+
+/**
+ * 1. PNG/JPG等を24bit非圧縮BMPに変換（前処理用）
+ */
+function createAnalysisBMP(srcFile) {
+    if (!srcFile || !srcFile.exists) return null;
+
+    var parentFolder = srcFile.path;
+    
+    // 1. 書き出し先のパスを決定（タイムスタンプで一意に）
+    var timeStamp = new Date().getTime();
+    var tempBMP = new File(parentFolder + "/zaz_spoit_" + timeStamp + ".bmp");
+
+    var doc = null;
+
+    try {
+        // 2. ★新規ドキュメントを「追加」する
+        // [カラーモード, 幅, 高さ] ※画像より十分大きいサイズで作成
+        doc = app.documents.add(DocumentColorSpace.RGB, 2000, 2000);
+
+        // 3. ★画像をドキュメントに配置する
+        var pItem = doc.placedItems.add();
+        pItem.file = srcFile;
+        
+        // 座標を左上(0,0)に固定
+        pItem.position = [0, 0]; 
+
+        // 4. 書き出しオプション（24bit非圧縮BMPを保証）
+        var opts = new ImageCaptureOptions();
+        opts.antiAliasing = false; // 色を忠実に再現するためOFF
+        opts.matte = false;
+
+        // 5. 画像のサイズに合わせて範囲を決定 [top, left, bottom, right]
+        // Illustrator座標系：左上が(0,0)の場合、下方向はマイナス値
+        var clipRect = [0, 0, -pItem.height, pItem.width];
+        
+        // BMPとして書き出しを実行
+        doc.imageCapture(tempBMP, clipRect, opts);
+
+        // 6. 後片付け：作成したドキュメントを保存せずに閉じる
+        doc.close(SaveOptions.DONOTSAVECHANGES);
+
+        $.writeln("Analysis BMP generated at: " + tempBMP.fsName);
+        return tempBMP;
+
+    } catch (e) {
+        $.writeln("BMP Creation Error: " + e.message);
+        if (doc) doc.close(SaveOptions.DONOTSAVECHANGES);
+        return null;
+    }
+}
+
+/**
+ * 2. BMPバイナリから指定座標の色を高速抽出（クリック時用）
+ */
+function getPixelColorFromBMP(x, y, bmpFile) {
+    if (!bmpFile || !bmpFile.exists) return null;
+    try {
+        bmpFile.encoding = "BINARY";
+        bmpFile.open("r");
+        bmpFile.seek(18);
+        var w = readInt32(bmpFile);
+        bmpFile.seek(22);
+        var h = readInt32(bmpFile);
+        
+        var rowSize = Math.ceil((w * 3) / 4) * 4;
+        var invY = h - 1 - Math.floor(y);
+        var pos = 54 + (invY * rowSize) + (Math.floor(x) * 3);
+        
+        bmpFile.seek(pos);
+        var b = bmpFile.read(1).charCodeAt(0);
+        var g = bmpFile.read(1).charCodeAt(0);
+        var r = bmpFile.read(1).charCodeAt(0);
+        bmpFile.close();
+        return [r, g, b];
+    } catch (e) { return null; }
+}
+
+function readInt32(f) {
+    var b = [f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0)];
+    return (b[3] << 24) | (b[2] << 16) | (b[1] << 8) | b[0];
+}
+
+
 /**
  * Photoshopと通信して指定した画像ファイルの特定座標の色を取得する
  * @param {File} imgFile 解析対象の画像ファイルオブジェクト
@@ -365,6 +449,13 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         
         // BridgeTalkでPSを呼び出し
         getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
+
+        //var rgbArrayX = null;
+        //analysisFile = createAnalysisBMP(imageFile);
+        //var rgbArrayX = getPixelColorFromBMP(event.screenX, event.screenY, analysisFile);
+        //if (rgbArrayX) {
+        //    alert("CLI取得成功: RGB(" + rgbArrayX.join(",") + ")");
+        //}
 
     } catch(e) {
         alert( e.message );
