@@ -16,7 +16,7 @@ $.evalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/Language.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
-$.evalFile(GetScriptDir() + "CView.jsx");
+$.evalFile(GetScriptDir() + "CViewer.jsx");
 
 
 // 言語ごとの辞書を定義
