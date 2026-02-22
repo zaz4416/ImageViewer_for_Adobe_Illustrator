@@ -17,6 +17,42 @@ var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale �
 
 // --- グローバル関数 -----------------------------------------------------------------
 
+/**
+ * 画像のオリジナルサイズを取得する（Photoshop/Illustrator両対応）
+ */
+
+function getImageSize(imageFile) {
+    var self = this;
+    var result = { width: 100, height: 100, ratio: 1 }; // フォールバック
+
+    try {
+        // Photoshopの場合、ScriptUIに頼らずapp.openせずにサイズを得る方法を優先
+        if (BridgeTalk.appName === "photoshop") {
+            // Photoshop特有の、高速な画像メタデータ取得が必要な場合はここ
+            // 今回はScriptUIでの解決を試みる
+        }
+
+        var win = new Window("palette", "Size Checker");
+        // PSでのエラー回避: Fileオブジェクトを直接渡す前にパスを確認
+        var myImage = win.add('image', undefined, File(imageFile.fullName)); 
+
+        // 強制的に計算を実行
+        win.layout.layout(true);
+
+        if (myImage.bounds.width > 0) {
+            result.width  = myImage.bounds.width;
+            result.height = myImage.bounds.height;
+            result.ratio  = result.width / result.height;
+        }
+        
+        win.close();
+    } catch (e) {
+        // エラー時のデフォルト値
+        $.writeln("Image Load Error: " + e.message);
+    }
+    
+    return result;
+};
 
 
 // ---------------------------------------------------------------------------------
@@ -26,10 +62,8 @@ var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale �
 //-----------------------------------
 
 // コンストラクタ
-function CViewer(pObj, imageFile) {
+function CViewer(pObj, pDialog, pPanelView, imageFile) {
     var self         = this;
-    var pDialog      = pObj.m_Dialog;
-    var pPanelView   = pObj.m_PanelView;
     self.Result      = null;
     self.GlobalScale = 0.25;            // 画像を表示する際のスケーリング（モニター解像度に合わせて調整される）
     self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
@@ -37,7 +71,7 @@ function CViewer(pObj, imageFile) {
     self.m_UIScale   = _UIScale;        // ディスプレイのスケーリング倍率を保存する
 
     try{
-        self.m_Image = self.getImageSize(imageFile);
+        self.m_Image = getImageSize(imageFile);
         var imageWidth   = self.m_Image.width;      // 画像の幅
         var imageHeight  = self.m_Image.height;     // 画像の高さ
         self.aspectRatio = self.m_Image.ratio;      // 画像の縦横比
@@ -172,43 +206,6 @@ function CViewer(pObj, imageFile) {
 
 
 /**
- * 画像のオリジナルサイズを取得する（Photoshop/Illustrator両対応）
- */
-CViewer.prototype.getImageSize = function(imageFile) {
-    var self = this;
-    var result = { width: 100, height: 100, ratio: 1 }; // フォールバック
-
-    try {
-        // Photoshopの場合、ScriptUIに頼らずapp.openせずにサイズを得る方法を優先
-        if (BridgeTalk.appName === "photoshop") {
-            // Photoshop特有の、高速な画像メタデータ取得が必要な場合はここ
-            // 今回はScriptUIでの解決を試みる
-        }
-
-        var win = new Window("palette", "Size Checker");
-        // PSでのエラー回避: Fileオブジェクトを直接渡す前にパスを確認
-        var myImage = win.add('image', undefined, File(imageFile.fullName)); 
-
-        // 強制的に計算を実行
-        win.layout.layout(true);
-
-        if (myImage.bounds.width > 0) {
-            result.width  = myImage.bounds.width;
-            result.height = myImage.bounds.height;
-            result.ratio  = result.width / result.height;
-        }
-        
-        win.close();
-    } catch (e) {
-        // エラー時のデフォルト値
-        $.writeln("Image Load Error: " + e.message);
-    }
-    
-    return result;
-};
-
-
-/**
  * キャンバスへのオブジェクトを返す
  */
 CViewer.prototype.GetCanvas = function() {
@@ -220,55 +217,6 @@ CViewer.prototype.GetCanvas = function() {
     }
 }
 
-
-/**
- * 右クリックメニューの構築と表示
- */
-CViewer.prototype.showContextMenu = function(event, pObj) {
-    try {
-        var GlbObj = pObj.GetDialogObject();
-
-        // 1. 枠なしの小型パレットを作成（これがメニューの実体になる）
-        var menuWin = new CPopMenu( event.screenX, event.screenY );
-        
-        // 2. メニュー項目の追加（ボタンの見た目をフラットにしてメニューに見せる）
-        menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
-        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
-
-        // 3. メニューを表示
-        menuWin.show();
-    } catch(e) {
-        alert( e.message );
-    }
-}
-
-
-/**
- * 左クリックメニューの構築と表示
- */
-CViewer.prototype.OnPickUp = function(event, pObj, imageFile) {
-    try {
-        var GlbObj  = pObj.GetDialogObject();
-        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
-
-        var pView   = GlbObj.m_Viewer;
-        var pCanvas = GlbObj.m_Viewer.m_Canvas;
-        var imageWidth   = pView.m_Image.width;      // 画像の幅
-        var imageHeight  = pView.m_Image.height;     // 画像の高さ
-        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
-        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ
-        var canvasLocation = GetMouseLocalLocation(event, pCanvas);    
-        var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
-        var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
-        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
-        
-        // BridgeTalkでPSを呼び出し
-        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
-
-    } catch(e) {
-        alert( e.message );
-    }
-}
 
 /**
  * Photoshopと通信して指定した画像ファイルの特定座標の色を取得する
@@ -362,3 +310,63 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
 
 
 
+//-----------------------------------
+// クラス CViewerOpration
+//-----------------------------------
+
+// コンストラクタ
+function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) { 
+    CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ
+}
+
+ClassInheritance(CViewerOpration, CViewer);   // クラス継承
+
+
+/**
+ * 右クリックメニューの構築と表示
+ */
+CViewerOpration.prototype.showContextMenu = function(event, pObj) {
+    try {
+        var GlbObj = pObj.GetDialogObject();
+
+        // 1. PopMenuを作成
+        var menuWin = new CPopMenu( event );
+        
+        // 2. PopMenuの項目を追加
+        menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
+        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
+
+        // 3. メニューを表示
+        menuWin.show();
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+
+/**
+ * 左クリックメニューの構築と表示
+ */
+CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
+    try {
+        var GlbObj  = pObj.GetDialogObject();
+        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
+
+        var pView   = GlbObj.m_Viewer;
+        var pCanvas = GlbObj.m_Viewer.m_Canvas;
+        var imageWidth   = pView.m_Image.width;      // 画像の幅
+        var imageHeight  = pView.m_Image.height;     // 画像の高さ
+        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ
+        var canvasLocation = GetMouseLocalLocation(event, pCanvas);    
+        var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
+        var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
+        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
+        
+        // BridgeTalkでPSを呼び出し
+        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
+
+    } catch(e) {
+        alert( e.message );
+    }
+}

@@ -212,7 +212,7 @@ function CImageViewDLg( scriptName ) {
             }
             
             // コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self, imageFile );
+            self.m_Viewer = new CViewerOpration( self, self.m_Dialog, self.m_PanelView, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             if ( self.m_Viewer === null ) {
@@ -385,7 +385,7 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
             self.m_PanelView.layout.layout(true);
 
             // 3. コンストラクタからの戻り値を得られないので、.ResultにCViewerの生成物を戻すようにした
-            self.m_Viewer = new CViewer( self, imageFile );
+            self.m_Viewer = new CViewerOpration( self, self.m_Dialog, self.m_PanelView, imageFile );
             self.m_Viewer = self.m_Viewer.Result;
 
             // 4. レイアウトを更新
