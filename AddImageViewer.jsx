@@ -257,7 +257,7 @@ CImageViewDLg.prototype.onResizing = function() {
 
     var Dlg   = self.m_Dialog;
     var Panel = self.m_PanelView;
-    var Canv  = self.m_Viewer.m_Canvas;
+    var Canv  = self.m_Viewer.GetCanvas();
     var PanelTool = self.m_PanelTool;
 
     try{
@@ -378,7 +378,7 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
             // 1. m_PanelView内のコントロールを削除
             if ( self.m_Viewer !== null )
             {
-                self.m_PanelView.remove(self.m_Viewer.m_Canvas);
+                self.m_PanelView.remove(self.m_Viewer.GetCanvas());
             }
 
             // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）

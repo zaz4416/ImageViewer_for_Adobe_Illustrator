@@ -207,6 +207,19 @@ CViewer.prototype.getImageSize = function(imageFile) {
 
 
 /**
+ * キャンバスへのオブジェクトを返す
+ */
+CViewer.prototype.GetCanvas = function() {
+    try {
+        var self = this;
+        return self.m_Canvas;
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+
+/**
  * 右クリックメニューの構築と表示
  */
 CViewer.prototype.showContextMenu = function(event, pObj) {
