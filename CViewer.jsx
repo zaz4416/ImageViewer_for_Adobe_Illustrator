@@ -146,7 +146,7 @@ function CLoupePalette() {
 
         var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
         var myFont = ScriptUI.newFont("Arial", "BOLD", 20);
-        g.drawString(self.centerX + "," + self.centerY, blackPen, 10, 5, myFont); 
+        g.drawString(self.centerX + "," + self.centerY+","+srcX+","+srcY+","+sampleSize, blackPen, 10, 5, myFont); 
 
         // 1. 下地の黒い太線 (幅5px)
         var pBlack = g.newPen(g.PenType.SOLID_COLOR, [0, 0, 0, 1], 5);
@@ -160,9 +160,6 @@ function CLoupePalette() {
     };
 }
 
-CLoupePalette.prototype.show = function() { this.m_Win.show(); };
-CLoupePalette.prototype.close = function() { this.m_Win.close(); };
-
 /**
  * 座標を更新して再描画させる
  */
@@ -173,6 +170,8 @@ CLoupePalette.prototype.update = function(img, x, y) {
     this.m_View.notify("onDraw");
 };
 
+CLoupePalette.prototype.show = function() { this.m_Win.show(); };
+CLoupePalette.prototype.close = function() { this.m_Win.close(); };
 
 // ---------------------------------------------------------------------------------
 
@@ -257,9 +256,6 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
 
-
-                            var GlbObj  = pObj.GetDialogObject();
-        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
 
                     var zxzX =  self.mousePos.x; // マウスのローカルX座標
                     var zxzY =  self.mousePos.y; // マウスのローカルY座標

@@ -365,7 +365,7 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
 }
 
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
-    var  self = this.GetDialogObject();;
+    var  self = this.GetDialogObject();
     try {
         self.close();
     }
