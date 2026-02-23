@@ -131,22 +131,25 @@ function CLoupePalette() {
 
         //if (!self.targetImg) return;
         var g = this.graphics;
-        
-        // 拡大鏡のサイズ(200)に対して、元画像の何ピクセル分を切り出すか
-        var sampleSize = 200 / self.zoom;
-        var srcX = self.centerX - (sampleSize / 2);
-        var srcY = self.centerY - (sampleSize / 2);
 
         // 背景を白で塗りつぶす処理
         var whiteBrush = g.newBrush(g.BrushType.SOLID_COLOR, [1.0, 1.0, 1.0, 1.0]); // [R, G, B, A]
         g.rectPath(0, 0, 200, 200);
         g.fillPath(whiteBrush);
 
-        g.drawImage(self.targetImg, 0, 0, 200, 200, srcX, srcY, sampleSize, sampleSize);
+        // 拡大鏡のサイズ(200)に対して、元画像の何ピクセル分を切り出すか
+        var UIScale = self.m_UIScale;
+        //var sampleSize = 200 * self.zoom * UIScale;
+        var sampleSize = 200 *  UIScale;
+        var srcX = self.centerX - (sampleSize / 2);
+        var srcY = self.centerY - (sampleSize / 2);
+        g.drawImage(self.targetImg, -srcX, -srcY, self.targetImg_W, self.targetImg_H);
 
         var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
         var myFont = ScriptUI.newFont("Arial", "BOLD", 20);
-        g.drawString(self.centerX + "," + self.centerY+","+srcX+","+srcY+","+sampleSize, blackPen, 10, 5, myFont); 
+        g.drawString(self.targetImg_W + "," + self.targetImg_H, blackPen, 10, 5, myFont); 
+        g.drawString(srcX+","+srcY, blackPen, 10, 25, myFont); 
+        g.drawString("sampleSize: " + sampleSize, blackPen, 10, 45, myFont); 
 
         // 1. 下地の黒い太線 (幅5px)
         var pBlack = g.newPen(g.PenType.SOLID_COLOR, [0, 0, 0, 1], 5);
@@ -163,10 +166,13 @@ function CLoupePalette() {
 /**
  * 座標を更新して再描画させる
  */
-CLoupePalette.prototype.update = function(img, x, y) {
+CLoupePalette.prototype.update = function(img, img_W, img_H, scale, x, y) {
     this.targetImg = img;
     this.centerX = x;
     this.centerY = y;
+    this.targetImg_W = img_W;
+    this.targetImg_H = img_H;
+    this.m_UIScale = scale;
     this.m_View.notify("onDraw");
 };
 
@@ -260,8 +266,8 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     var zxzX =  self.mousePos.x; // マウスのローカルX座標
                     var zxzY =  self.mousePos.y; // マウスのローカルY座標
 
-                    if(false)
-                    {
+                    
+                    
                         var pView   = pObj.m_Viewer;
                         var pCanvas = pView.m_Canvas;
                         var imageWidth   = pView.m_Image.width;      // 画像の幅
@@ -270,10 +276,10 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                         var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ  
                         zxzX =  Math.floor( imageWidth  * ( self.mousePos.x / canvasWidth  ) );
                         zxzY =  Math.floor( imageHeight * ( self.mousePos.y / canvasHeight ) );
-                    }
+                    
 
                     // マウス位置に応じて拡大鏡を更新
-                    self.m_Loupe.update(self.uiImage, zxzX, zxzY);
+                    self.m_Loupe.update(self.uiImage, imageWidth, imageHeight, pView.m_UIScale,zxzX, zxzY);
                 }
             }
 
