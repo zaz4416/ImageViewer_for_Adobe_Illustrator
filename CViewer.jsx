@@ -60,32 +60,52 @@ function getImageSize(imageFile) {
  */
 function checkAndRunPS(imgFile, x, y, callback) {
     var targetApp = "photoshop";
+    var maxRetry = 30; // 最大30秒待機
+    var retryCount = 0;
 
-    // 1. すでに起動しているか確認
+    // すでに起動している場合
     if (BridgeTalk.isRunning(targetApp)) {
         getPixelColorViaPS(imgFile, x, y, callback);
-    } else {
-        // 2. 起動していない場合は起動命令を出す
-        BridgeTalk.launch(targetApp);
-        
-        // 3. 起動が完了するまで「待機」して実行するループ
-        // ※ 1秒ごとにチェックし、起動したら関数を呼び出す
-        var checkTimer = function() {
-            if (BridgeTalk.isRunning(targetApp)) {
-                // 起動完了！少しだけ余裕を持って実行
-                $.sleep(1000); 
-                getPixelColorViaPS(imgFile, x, y, callback);
-            } else {
-                // まだ起動中なら再度チェック（再帰）
-                // ※無限ループ防止のため回数制限を設けるのが安全
-                $.sleep(1000);
-                checkTimer();
-            }
-        };
-        
-        alert("Photoshopを起動しています。しばらくお待ちください...");
-        checkTimer();
+        return;
     }
+
+    // 起動していない場合は起動命令を出す
+    BridgeTalk.launch(targetApp);
+    
+    // プログレス表示や待機メッセージ
+    var progressWin = new Window("palette", "Photoshop 起動待機中...");
+    progressWin.add("statictext", undefined, "Photoshopを起動しています。完了までお待ちください。");
+    var bar = progressWin.add("progressbar", [0, 0, 200, 10], 0, maxRetry);
+    progressWin.show();
+
+    /**
+     * 再帰的なチェック用関数
+     */
+    function waitForLaunch() {
+        if (BridgeTalk.isRunning(targetApp)) {
+            progressWin.close();
+            // 起動直後はメッセージを受け付けないことがあるため、1秒追加待機
+            $.sleep(1000); 
+            getPixelColorViaPS(imgFile, x, y, callback);
+            return;
+        }
+
+        if (retryCount >= maxRetry) {
+            progressWin.close();
+            alert("タイムアウト: Photoshopの起動を確認できませんでした。\n手動でPhotoshopを起動してから再度お試しください。");
+            return;
+        }
+
+        // カウントアップして再試行
+        retryCount++;
+        bar.value = retryCount;
+        progressWin.update();
+        
+        $.sleep(1000); // 1秒待機
+        waitForLaunch();
+    }
+
+    waitForLaunch();
 }
 
 // ---------------------------------------------------------------------------------
@@ -356,42 +376,43 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
     var psCode = [
         "(function() {",
         "  var savedRuler = app.preferences.rulerUnits;",
-        "  app.preferences.rulerUnits = Units.PIXELS; // 単位をピクセルに強制",
-        "  ",
+        "  app.preferences.rulerUnits = Units.PIXELS;",
         "  var f = new File('" + imgFile.fullName + "');",
         "  if (!f.exists) return 'Error: File not found';",
-        "  ",
         "  var doc = open(f, undefined, false);",
         "  app.activeDocument = doc;",
-        "  ",
         "  if (doc.mode == DocumentMode.INDEXEDCOLOR) doc.changeMode(ChangeMode.RGB);",
         "  ",
-        "  // doc.width.as('px') を使うことで確実にピクセル数と比較",
-        "  var w = doc.width.as('px');",
-        "  var h = doc.height.as('px');",
-        "  var safeX = Math.max(0, Math.min(" + targetX + ", w - 1));",
-        "  var safeY = Math.max(0, Math.min(" + targetY + ", h - 1));",
+        "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.as('px') - 1));",
+        "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.as('px') - 1));",
         "  ",
         "  doc.colorSamplers.removeAll();",
         "  var sampler = doc.colorSamplers.add([safeX, safeY]);",
-        "  ",
         "  var res = Math.round(sampler.color.rgb.red) + ',' + ",
         "            Math.round(sampler.color.rgb.green) + ',' + ",
         "            Math.round(sampler.color.rgb.blue);",
         "  ",
-        "  var markerLayer = doc.artLayers.add();",
-        "  markerLayer.name = 'Click_Marker_' + res;",
+        "  // --- マーカー管理機能 ---",
+        "  var groupName = 'AI_Picked_Colors';",
+        "  var markerGroup;",
+        "  try {",
+        "    markerGroup = doc.layerSets.getByName(groupName);",
+        "  } catch (e) {",
+        "    markerGroup = doc.layerSets.add();",
+        "    markerGroup.name = groupName;",
+        "  }",
         "  ",
-        "  // 選択範囲もピクセルで指定されるようになる",
+        "  var markerLayer = markerGroup.artLayers.add();", // グループ内に追加
+        "  markerLayer.name = 'Color_' + res;",
+        "  ",
         "  var region = [[safeX-2, safeY-2], [safeX+2, safeY-2], [safeX+2, safeY+2], [safeX-2, safeY+2]];",
         "  doc.selection.select(region);",
-        "  ",
-        "  var fillRGB = new RGBColor();",
-        "  fillRGB.red = 255; fillRGB.green = 0; fillRGB.blue = 0;",
+        "  var fillRGB = new SolidColor();",
+        "  fillRGB.rgb.red = 255; fillRGB.rgb.green = 0; fillRGB.rgb.blue = 0;",
         "  doc.selection.fill(fillRGB);",
         "  doc.selection.deselect();",
         "  ",
-        "  app.preferences.rulerUnits = savedRuler; // 単位を元に戻す",
+        "  app.preferences.rulerUnits = savedRuler;",
         "  return res;",
         "})();"
     ].join("\n");

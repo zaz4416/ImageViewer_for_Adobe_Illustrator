@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/22
+// Ver.1.0 : 2026/02/23
 
 #target illustrator
 #targetengine "main"
