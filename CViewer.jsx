@@ -257,8 +257,27 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
 
+
+                            var GlbObj  = pObj.GetDialogObject();
+        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
+
+                    var zxzX =  self.mousePos.x; // マウスのローカルX座標
+                    var zxzY =  self.mousePos.y; // マウスのローカルY座標
+
+                    if(false)
+                    {
+                        var pView   = pObj.m_Viewer;
+                        var pCanvas = pView.m_Canvas;
+                        var imageWidth   = pView.m_Image.width;      // 画像の幅
+                        var imageHeight  = pView.m_Image.height;     // 画像の高さ
+                        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+                        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ  
+                        zxzX =  Math.floor( imageWidth  * ( self.mousePos.x / canvasWidth  ) );
+                        zxzY =  Math.floor( imageHeight * ( self.mousePos.y / canvasHeight ) );
+                    }
+
                     // マウス位置に応じて拡大鏡を更新
-                    self.m_Loupe.update(self.uiImage, self.mousePos.x, self.mousePos.y);
+                    self.m_Loupe.update(self.uiImage, zxzX, zxzY);
                 }
             }
 
