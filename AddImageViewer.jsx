@@ -197,6 +197,9 @@ function CImageViewDLg( scriptName ) {
     self.m_Viewer = null;   // ビューアは未定義状態
     self.isResizing = false; // 無限ループ防止フラグ (onResizing サイズ変更中に呼び出される)
 
+    // コンストラクタや初期化メソッド内
+    self.m_ColorHistory = []; // [ [r,g,b], [r,g,b], ... ]
+
     if ( self.IsDialg()) {
         // GUI用のスクリプトを読み込む
         if ( self.LoadGUIfromJSX( GetScriptDir() + LangStringsForViewer.GUI_JSX ) )
@@ -352,6 +355,10 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
             app.redraw();
         }
 
+        // 履歴に追加
+        self.m_ColorHistory.push([Number(rgbArray[0]), Number(rgbArray[1]), Number(rgbArray[2])]);
+        $.writeln("History Count: " + self.m_ColorHistory.length);
+
     } catch(e) {
         alert( e.message );
     }
@@ -368,7 +375,7 @@ CImageViewDLg.prototype.onEndOfDialogClick = function() {
 }
 
 CImageViewDLg.prototype.onLoadImageClick = function() {
-    var self = this.GetDialogObject();;
+    var self = this.GetDialogObject();
 
     try {
         // 画像ファイル選択
@@ -431,6 +438,43 @@ CImageViewDLg.prototype.GetImageFile = function() {
 
     return imageFile;
 }
+
+/**
+ * 履歴にあるすべての色からカラーパレットを図形として生成する
+ */
+CImageViewDLg.prototype.CreatePaletteObjects = function() {
+    var self = this.GetDialogObject();
+
+    if (self.m_ColorHistory.length === 0) {
+        alert("履歴がありません。先に色を取得してください。");
+        return;
+    }
+
+    var doc = (app.documents.length > 0) ? app.activeDocument : app.documents.add(DocumentColorSpace.RGB);
+    var startX = 100;
+    var startY = 500;
+    var rectSize = 50; // 四角のサイズ
+    var gap = 10;      // 間隔
+
+    for (var i = 0; i < this.m_ColorHistory.length; i++) {
+        var rgb = this.m_ColorHistory[i];
+        
+        // 四角形を作成 [top, left, width, height]
+        var rect = doc.pathItems.rectangle(startY, startX + (rectSize + gap) * i, rectSize, rectSize);
+        
+        // 色の設定
+        var fillColor = new RGBColor();
+        fillColor.red = rgb[0];
+        fillColor.green = rgb[1];
+        fillColor.blue = rgb[2];
+        
+        rect.fillColor = fillColor;
+        rect.stroked = false; // 線なし
+    }
+    
+    app.redraw();
+    alert(this.m_ColorHistory.length + " 個の色でパレットを生成しました。");
+};
 
 /**
  * PNGファイルが透明度(Alpha)を持っているか判定する

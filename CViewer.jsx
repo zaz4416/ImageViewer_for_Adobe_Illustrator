@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/02/22
+// Ver.1.0 : 2026/02/23
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -108,6 +108,72 @@ function checkAndRunPS(imgFile, x, y, callback) {
     waitForLaunch();
 }
 
+
+/**
+ * 拡大鏡（ルーペ）専用の浮動パレットクラス
+ */
+function CLoupePalette() {
+    this.m_Win = new Window("palette", "拡大鏡 [x8]", undefined, {borderless: false});
+    this.m_Win.margins = 5;
+    
+    // 200px四方の拡大表示領域
+    this.m_View = this.m_Win.add("customview", [0, 0, 200, 200]);
+    this.zoom = 8; // 拡大率
+    
+    this.targetImg = null; // 表示対象のScriptUIImage
+    this.centerX = 0;      // 元画像上の中心Xピクセル
+    this.centerY = 0;      // 元画像上の中心Yピクセル
+
+    var self = this;
+    
+    // 描画ロジック
+    this.m_View.onDraw = function() {
+
+        //if (!self.targetImg) return;
+        var g = this.graphics;
+        
+        // 拡大鏡のサイズ(200)に対して、元画像の何ピクセル分を切り出すか
+        var sampleSize = 200 / self.zoom;
+        var srcX = self.centerX - (sampleSize / 2);
+        var srcY = self.centerY - (sampleSize / 2);
+
+        // 背景を白で塗りつぶす処理
+        var whiteBrush = g.newBrush(g.BrushType.SOLID_COLOR, [1.0, 1.0, 1.0, 1.0]); // [R, G, B, A]
+        g.rectPath(0, 0, 200, 200);
+        g.fillPath(whiteBrush);
+
+        g.drawImage(self.targetImg, 0, 0, 200, 200, srcX, srcY, sampleSize, sampleSize);
+
+        var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
+        var myFont = ScriptUI.newFont("Arial", "BOLD", 20);
+        g.drawString(self.centerX + "," + self.centerY, blackPen, 10, 5, myFont); 
+
+        // 1. 下地の黒い太線 (幅5px)
+        var pBlack = g.newPen(g.PenType.SOLID_COLOR, [0, 0, 0, 1], 5);
+        g.moveTo(85, 100); g.lineTo(115, 100);
+        g.moveTo(100, 85); g.lineTo(100, 115);
+
+        // 2. 重ねる赤い細線 (幅2px)
+        var pRed = g.newPen(g.PenType.SOLID_COLOR, [1, 0, 0, 1], 2);
+        g.moveTo(85, 100); g.lineTo(115, 100);
+        g.moveTo(100, 85); g.lineTo(100, 115);
+    };
+}
+
+CLoupePalette.prototype.show = function() { this.m_Win.show(); };
+CLoupePalette.prototype.close = function() { this.m_Win.close(); };
+
+/**
+ * 座標を更新して再描画させる
+ */
+CLoupePalette.prototype.update = function(img, x, y) {
+    this.targetImg = img;
+    this.centerX = x;
+    this.centerY = y;
+    this.m_View.notify("onDraw");
+};
+
+
 // ---------------------------------------------------------------------------------
 
 //-----------------------------------
@@ -122,6 +188,8 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
     self.mousePos    = { x: 0, y: 0 };  // マウスのローカル座標を保存するオブジェクト
     self.m_UIScale   = _UIScale;        // ディスプレイのスケーリング倍率を保存する
+    self.m_Loupe = new CLoupePalette();
+    self.m_Loupe.show();
 
     try{
         self.m_Image = getImageSize(imageFile);
@@ -188,21 +256,9 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
 
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
-                    
-                    /*
-                    if (self.mousePos.x !== 0 && self.mousePos.y !== 0) {
-                        var p = g.newPen(g.PenType.SOLID_COLOR, [1, 1, 1, 1], 1); // 白い線
-                        // 横線
-                        g.moveTo(self.mousePos.x - 10, self.mousePos.y);
-                        g.lineTo(self.mousePos.x + 10, self.mousePos.y);
-                        // 縦線
-                        g.moveTo(self.mousePos.x, self.mousePos.y - 10);
-                        g.lineTo(self.mousePos.x, self.mousePos.y + 10);
-                    }
-                    */
 
-                    //g.drawString(self.mousePos.x + "," + self.mousePos.y,  blackPen, 20,20, myFont);    // デバッグ用にマウスの座標を表示
-                    //g.drawString(canv.size.width + " x " + canv.size.height,  blackPen, 20,40, myFont);    // デバッグ用に文字を表示
+                    // マウス位置に応じて拡大鏡を更新
+                    self.m_Loupe.update(self.uiImage, self.mousePos.x, self.mousePos.y);
                 }
             }
 
@@ -216,10 +272,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 switch (event.button) {
                     case 0:
                         // 左クリック
-                        //if (self.m_ColorBox) 
-                        {
-                            self.OnPickUp(event, pObj, imageFile); // メニュー表示へ
-                        }
+                        self.OnPickUp(event, pObj, imageFile); // メニュー表示へ
                         break;
                     case 1:
                         // 中央（ホイール）クリック
@@ -241,10 +294,11 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     x: canvasLocation.x,
                     y: canvasLocation.y
                 };
-                
+
                 // 再描画を依頼（これをしないと onDraw が走らない）
                 self.m_Canvas.notify("onDraw");
             });
+
         }
     }
     catch(e)
@@ -454,7 +508,7 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
 
 // コンストラクタ
 function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) { 
-    CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ
+    CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ呼び出し
 }
 
 ClassInheritance(CViewerOpration, CViewer);   // クラス継承
@@ -472,7 +526,7 @@ CViewerOpration.prototype.showContextMenu = function(event, pObj) {
         
         // 2. PopMenuの項目を追加
         menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
-        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize);
+        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize, function() { GlbObj.CreatePaletteObjects(); } );
 
         // 3. メニューを表示
         menuWin.show();
