@@ -55,6 +55,39 @@ function getImageSize(imageFile) {
 };
 
 
+/**
+ * Photoshopの起動状態を確認し、必要なら起動してから色取得を実行する
+ */
+function checkAndRunPS(imgFile, x, y, callback) {
+    var targetApp = "photoshop";
+
+    // 1. すでに起動しているか確認
+    if (BridgeTalk.isRunning(targetApp)) {
+        getPixelColorViaPS(imgFile, x, y, callback);
+    } else {
+        // 2. 起動していない場合は起動命令を出す
+        BridgeTalk.launch(targetApp);
+        
+        // 3. 起動が完了するまで「待機」して実行するループ
+        // ※ 1秒ごとにチェックし、起動したら関数を呼び出す
+        var checkTimer = function() {
+            if (BridgeTalk.isRunning(targetApp)) {
+                // 起動完了！少しだけ余裕を持って実行
+                $.sleep(1000); 
+                getPixelColorViaPS(imgFile, x, y, callback);
+            } else {
+                // まだ起動中なら再度チェック（再帰）
+                // ※無限ループ防止のため回数制限を設けるのが安全
+                $.sleep(1000);
+                checkTimer();
+            }
+        };
+        
+        alert("Photoshopを起動しています。しばらくお待ちください...");
+        checkTimer();
+    }
+}
+
 // ---------------------------------------------------------------------------------
 
 //-----------------------------------
@@ -448,7 +481,7 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
         
         // BridgeTalkでPSを呼び出し
-        getPixelColorViaPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
+        checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
 
         //var rgbArrayX = null;
         //analysisFile = createAnalysisBMP(imageFile);
