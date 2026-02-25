@@ -152,18 +152,24 @@ function CLoupePalette() {
 
         var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
         var myFont = ScriptUI.newFont("Arial", "BOLD", 20);
-        g.drawString(self.targetImg_W + "," + self.targetImg_H, blackPen, 10, 5, myFont); 
-        g.drawString("Mouse:"+self.centerX +","+self.centerY, blackPen, 10, 25, myFont); 
+        //g.drawString(self.targetImg_W + "," + self.targetImg_H, blackPen, 10, 5, myFont); 
+        //g.drawString("Mouse:"+self.centerX +","+self.centerY, blackPen, 10, 25, myFont); 
+
+        var CeX = ViewWidth  / 2;
+        var CeY = ViewHeight / 2;
+        var Lie = 15;
 
         // 1. 下地の黒い太線 (幅5px)
         var pBlack = g.newPen(g.PenType.SOLID_COLOR, [0, 0, 0, 1], 5);
-        g.moveTo(85, 100); g.lineTo(115, 100);
-        g.moveTo(100, 85); g.lineTo(100, 115);
+        g.moveTo(CeX-Lie, CeY); g.lineTo(CeX+Lie, CeY);
+        g.moveTo(CeX, CeY-Lie); g.lineTo(CeX, CeY+Lie);
+        g.strokePath(pBlack); // ★ここで黒い線が描画される
 
         // 2. 重ねる赤い細線 (幅2px)
         var pRed = g.newPen(g.PenType.SOLID_COLOR, [1, 0, 0, 1], 2);
-        g.moveTo(85, 100); g.lineTo(115, 100);
-        g.moveTo(100, 85); g.lineTo(100, 115);
+        g.moveTo(CeX-Lie, CeY); g.lineTo(CeX+Lie, CeY);
+        g.moveTo(CeX, CeY-Lie); g.lineTo(CeX, CeY+Lie);
+        g.strokePath(pRed); // ★ここで赤い線が描画される
     };
 }
 
