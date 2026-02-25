@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/02/25
+// Ver.1.0 : 2026/02/26
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -177,9 +177,8 @@ function CLoupePalette() {
     };
 }
 
-/**
- * 座標を更新して再描画させる
- */
+
+// 座標を更新して再描画させる
 CLoupePalette.prototype.update = function(img, img_W, img_H, scale, x, y) {
     this.targetImg = img;
     this.centerX = x;
@@ -188,6 +187,22 @@ CLoupePalette.prototype.update = function(img, img_W, img_H, scale, x, y) {
     this.targetImg_H = img_H;
     this.m_UIScale = scale;
     this.m_View.notify("onDraw");
+};
+
+// 拡大鏡の座標を設定する
+CLoupePalette.prototype.Locate = function(loc_x, loc_Y) {
+    var self               = this;
+    self.m_Win.location.x = loc_x;
+    self.m_Win.location.y = loc_Y;
+};
+
+// 拡大鏡の座標を取得する
+CLoupePalette.prototype.GetLocation = function() {
+    var self = this;
+    return {
+        x: self.m_Win.location.x ,
+        y: self.m_Win.location.y
+    };
 };
 
 CLoupePalette.prototype.show = function() { this.m_Win.show(); };
@@ -209,6 +224,8 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_UIScale   = _UIScale;        // ディスプレイのスケーリング倍率を保存する
     self.m_Loupe = new CLoupePalette();
     self.m_Loupe.show();
+    self.m_CanvasPos = null;
+
 
     try{
         self.m_Image = getImageSize(imageFile);
@@ -255,6 +272,34 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
             self.m_Canvas.orientation = "column";
             //self.m_Canvas.alignment = ["fill", "fill"];
             self.m_Canvas.size    = [ pDialog.preferredSize.width, pDialog.preferredSize.height ]; // ビューアの初期サイズ
+
+
+            // 移動イベントを監視
+            pDialog.onMove = function() {
+
+                // 現在のウィンドウ位置を取得
+                var currentWinPos = this.location;
+
+                // 初回移動時の起点座標を保存
+                if (self.m_CanvasPos === null) {
+                    self.m_CanvasPos = { x: currentWinPos.x, y: currentWinPos.y };
+                    return;
+                }
+
+                // 移動量（Delta）を計算
+                var deltaX = currentWinPos.x - self.m_CanvasPos.x;
+                var deltaY = currentWinPos.y - self.m_CanvasPos.y;
+
+                // ルーペの位置を更新（メイン窓が動いた分だけルーペも動かす）
+                if (self.m_Loupe && self.m_Loupe.m_Win) {
+                    var loupePos = self.m_Loupe.GetLocation();
+                    self.m_Loupe.Locate(loupePos.x + deltaX, loupePos.y + deltaY);
+                }
+
+                // 次回計算のために現在の位置を保存
+                self.m_CanvasPos = { x: currentWinPos.x, y: currentWinPos.y };
+            }
+
 
             // カスタム・カンバスのonDraw
             self.m_Canvas.onDraw = function() {
