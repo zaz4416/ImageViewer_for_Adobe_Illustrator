@@ -113,24 +113,26 @@ function checkAndRunPS(imgFile, x, y, callback) {
  * 拡大鏡（ルーペ）専用の浮動パレットクラス
  */
 function CLoupePalette() {
-    this.m_Win = new Window("palette", "拡大鏡 [x8]", undefined, {borderless: false});
-    this.m_Win.margins = 5;
+    var self = this;
+
+    self.m_Win = new Window("palette", "拡大鏡 [x8]", undefined, {borderless: false});
+    self.m_Win.margins = 5;
     
     // 200px四方の拡大表示領域
-    this.m_View = this.m_Win.add("customview", [0, 0, 200, 200]);
-    this.zoom = 8; // 拡大率
+    self.m_View = self.m_Win.add("customview", [0, 0, 200, 200]);
+    self.zoom = 8; // 拡大率
     
-    this.targetImg = null; // 表示対象のScriptUIImage
-    this.centerX = 0;      // 元画像上の中心Xピクセル
-    this.centerY = 0;      // 元画像上の中心Yピクセル
-
-    var self = this;
+    self.targetImg = null; // 表示対象のScriptUIImage
+    self.centerX = 0;      // 元画像上の中心Xピクセル
+    self.centerY = 0;      // 元画像上の中心Yピクセル
     
     // 描画ロジック
-    this.m_View.onDraw = function() {
+    self.m_View.onDraw = function() {
+
+        var ViewSelf = this;
 
         //if (!self.targetImg) return;
-        var g = this.graphics;
+        var g = ViewSelf.graphics;
 
         // 背景を白で塗りつぶす処理
         var whiteBrush = g.newBrush(g.BrushType.SOLID_COLOR, [1.0, 1.0, 1.0, 1.0]); // [R, G, B, A]
