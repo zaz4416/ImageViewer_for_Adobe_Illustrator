@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/02/23
+// Ver.1.0 : 2026/02/25
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -138,10 +138,9 @@ function CLoupePalette() {
         g.fillPath(whiteBrush);
 
         // 拡大鏡のサイズ(200)に対して、元画像の何ピクセル分を切り出すか
-        var ZoomVal = 1; //self.zoom;
+        var ZoomVal = 4; //self.zoom;
         var UIScale = self.m_UIScale;
-        //var sampleSize = 200 * self.zoom * UIScale;
-        var sampleSize = 200 *  UIScale;
+        var sampleSize = 200 / ZoomVal;
         var srcX = self.centerX - (sampleSize / 2);
         var srcY = self.centerY - (sampleSize / 2);
         g.drawImage(self.targetImg, -srcX*ZoomVal , -srcY*ZoomVal, self.targetImg_W*ZoomVal, self.targetImg_H*ZoomVal );
@@ -149,8 +148,9 @@ function CLoupePalette() {
         var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
         var myFont = ScriptUI.newFont("Arial", "BOLD", 20);
         g.drawString(self.targetImg_W + "," + self.targetImg_H, blackPen, 10, 5, myFont); 
-        g.drawString(srcX+","+srcY, blackPen, 10, 25, myFont); 
-        g.drawString("sampleSize: " + sampleSize, blackPen, 10, 45, myFont); 
+        g.drawString("Mouse:"+self.centerX +","+self.centerY, blackPen, 10, 25, myFont); 
+        g.drawString(srcX+","+srcY, blackPen, 10, 45, myFont); 
+        g.drawString("sampleSize: " + sampleSize, blackPen, 10, 65, myFont); 
 
         // 1. 下地の黒い太線 (幅5px)
         var pBlack = g.newPen(g.PenType.SOLID_COLOR, [0, 0, 0, 1], 5);
