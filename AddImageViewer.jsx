@@ -367,6 +367,12 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
 CImageViewDLg.prototype.onEndOfDialogClick = function() {
     var  self = this.GetDialogObject();
     try {
+        if ( self.m_Viewer !== null )
+        {
+            self.m_PanelView.remove(self.m_Viewer.GetCanvas());
+            self.m_Viewer.close();
+        }
+
         self.close();
     }
     catch(e) {
@@ -386,6 +392,7 @@ CImageViewDLg.prototype.onLoadImageClick = function() {
             if ( self.m_Viewer !== null )
             {
                 self.m_PanelView.remove(self.m_Viewer.GetCanvas());
+                self.m_Viewer.close();
             }
 
             // 2. レイアウトを更新（これを行わないと画面上が崩れる場合があります）

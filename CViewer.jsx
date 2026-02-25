@@ -10,6 +10,7 @@
 
 // ディスプレイのスケーリング倍率を保存する
 var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定 
+var _LoupeZoom = 3; // 拡大鏡（ルーペ）の拡大率
 
 #include "CpopMenu.jsx"   // 共通のポップアップメニュークラス
 
@@ -115,12 +116,15 @@ function checkAndRunPS(imgFile, x, y, callback) {
 function CLoupePalette() {
     var self = this;
 
-    self.m_Win = new Window("palette", "拡大鏡 [x8]", undefined, {borderless: false});
+    self.zoom = _LoupeZoom; // 拡大率
+    self.m_Win = new Window("palette", "拡大鏡 [x" + self.zoom + "]", undefined, {
+        borderless: false,
+        closeButton: false // ★ここに追加（×ボタンを非表示にする）
+    });
     self.m_Win.margins = 5;
     
     // 200px四方の拡大表示領域
     self.m_View = self.m_Win.add("customview", [0, 0, 200, 200]);
-    self.zoom = 2; // 拡大率
     
     self.targetImg = null; // 表示対象のScriptUIImage
     self.centerX = 0;      // 元画像上の中心Xピクセル
@@ -272,22 +276,17 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
 
-
                     var zxzX =  self.mousePos.x; // マウスのローカルX座標
                     var zxzY =  self.mousePos.y; // マウスのローカルY座標
-
-                    
-                    
-                        var pView   = pObj.m_Viewer;
-                        var pCanvas = pView.m_Canvas;
-                        var imageWidth   = pView.m_Image.width;      // 画像の幅
-                        var imageHeight  = pView.m_Image.height;     // 画像の高さ
-                        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
-                        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ  
+                    var pView   = pObj.m_Viewer;
+                    var pCanvas = pView.m_Canvas;
+                    var imageWidth   = pView.m_Image.width;      // 画像の幅
+                    var imageHeight  = pView.m_Image.height;     // 画像の高さ
+                    var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+                    var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ  
                         zxzX =  Math.floor( imageWidth  * ( self.mousePos.x / canvasWidth  ) );
                         zxzY =  Math.floor( imageHeight * ( self.mousePos.y / canvasHeight ) );
                     
-
                     // マウス位置に応じて拡大鏡を更新
                     self.m_Loupe.update(self.uiImage, imageWidth, imageHeight, pView.m_UIScale, zxzX, zxzY);
                 }
@@ -342,6 +341,15 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     return self;
 }
 
+
+CViewer.prototype.close = function() {
+    try {
+        var self = this;
+        self.m_Loupe.close();
+    } catch(e) {
+        alert( e.message );
+    }
+};
 
 /**
  * キャンバスへのオブジェクトを返す
