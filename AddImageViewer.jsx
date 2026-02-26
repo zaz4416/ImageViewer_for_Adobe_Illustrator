@@ -10,13 +10,52 @@
 #target illustrator
 #targetengine "main"
 
+if (typeof _LIBRARY_JSXINC_LOADED === "undefined") {
+    var _LIBRARY_JSXINC_LOADED = true;
+
+    function safeEvalFile(file) {
+        // 1. 引数の File オブジェクトが有効かチェック
+        if (!file || !(file instanceof File) || !file.exists) {
+            return;
+        }
+
+        var path = file.absoluteURI;
+        var alreadyIncluded = false;
+        
+        // 2. $.includedFiles が存在するかチェック
+        // ExtendScript の実装によっては、ここで undefined エラーが出るのを防ぐ
+        var includedList = $.includedFiles;
+
+        if (includedList) {
+            // 3. $.includedFiles は Array ではない場合があるため、
+            // インデックス参照と length を慎重に扱う
+            for (var i = 0; i < includedList.length; i++) {
+                if (includedList[i] === path) {
+                    alreadyIncluded = true;
+                    break;
+                }
+            }
+        }
+
+        // 4. まだ読み込まれていない場合のみ実行
+        if (!alreadyIncluded) {
+            try {
+                $.evalFile(file);
+            } catch (e) {
+                // 読み込みエラー時の処理
+                alert("Error in safeEvalFile: " + e.message);
+            }
+        }
+    }
+}
+
 
 // スクリプト実行時に外部のJSXを読み込む (#includeにすると、main関数が終了した時点で、ダイアログが表示されなくなる)
-$.evalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
-$.evalFile(GetScriptDir() + "ZazLib/Language.jsx");
-$.evalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
-$.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
-$.evalFile(GetScriptDir() + "CViewer.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/Language.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
+safeEvalFile(GetScriptDir() + "CViewer.jsx");
 
 
 // 言語ごとの辞書を定義
