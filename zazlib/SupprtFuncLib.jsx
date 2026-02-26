@@ -1,5 +1,5 @@
 ﻿
-// Ver.1.0 : 2025/12/27
+// Ver.1.0 : 2026/02/26
 
 // https://ai-scripting.docsforadobe.dev/jsobjref/Document.html
 // http://www.openspc2.org/reibun/Illustrator/ref/index.html
@@ -40,6 +40,7 @@
 // ExtendScriptとは、adobeの作ったECMA Script(ES3)準拠の独自言語。
 // adobe製品で使用できるスクリプト言語になります。
 
+#include "safeEvalFile.jsx"
 
 
 // 定数定義

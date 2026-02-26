@@ -12,7 +12,9 @@
 var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定 
 var _LoupeZoom = 3; // 拡大鏡（ルーペ）の拡大率
 
-#include "CpopMenu.jsx"   // 共通のポップアップメニュークラス
+
+#include "Zazlib/safeEvalFile.jsx"
+safeEvalFile(GetScriptDir() + "ZazLib/CpopMenu.jsx");
 
 
 
