@@ -3,6 +3,7 @@
 
 
 #include "safeEvalFile.jsx"
+safeEvalFile(GetScriptDir() + "GlobalArray.jsx");
 
 // --- グローバル関数 -----------------------------------------------------------------
 

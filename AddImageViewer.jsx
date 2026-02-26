@@ -15,7 +15,6 @@
 // スクリプト実行時に外部のJSXを読み込む (#includeにすると、main関数が終了した時点で、ダイアログが表示されなくなる)
 safeEvalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
 safeEvalFile(GetScriptDir() + "ZazLib/Language.jsx");
-safeEvalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
 safeEvalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
 safeEvalFile(GetScriptDir() + "CViewer.jsx");
 
