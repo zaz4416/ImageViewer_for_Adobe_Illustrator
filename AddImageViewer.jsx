@@ -343,29 +343,53 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
             gph.backgroundColor = myBrush;
         }
 
-        // 念のためIllustratorを前面に呼び戻す
-        // これにより操作権限が確実にIllustratorに戻ります
-        BridgeTalk.bringToFront("illustrator");
+        // --- 履歴重複チェック ---
+        var isDuplicate = false;
+        var currentR = Number(rgbArray[0]);
+        var currentG = Number(rgbArray[1]);
+        var currentB = Number(rgbArray[2]);
 
-        // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
-        {
-            var bt = new BridgeTalk();
-            bt.target = "illustrator"; // 自分自身をターゲットにする
-            
-            // 実行したいコードを文字列で記述
-            bt.body = "if(app.documents.length > 0){" +
-                    "  var c = new RGBColor();" +
-                    "  c.red=" + rgbArray[0] + "; c.green=" + rgbArray[1] + "; c.blue=" + rgbArray[2] + ";" +
-                    "  app.documents[0].defaultFillColor = c;" +
-                    "  app.redraw();" +
-                    "}";
-                    
-            bt.send(); // 通信として投げることで、現在の「ロックされたスレッド」から脱出する
+        for (var i = 0; i < self.m_ColorHistory.length; i++) {
+            var historyRGB = self.m_ColorHistory[i];
+            // R, G, B すべてが許容範囲内であるか確認
+            if (Math.abs(historyRGB[0] - currentR)< 3 && 
+                Math.abs(historyRGB[1] - currentG)< 3&& 
+                Math.abs(historyRGB[2] - currentB)< 3 ) {
+                isDuplicate = true;
+                break;
+            }
         }
 
-        // 履歴に追加
-        self.m_ColorHistory.push([Number(rgbArray[0]), Number(rgbArray[1]), Number(rgbArray[2])]);
-        $.writeln("History Count: " + self.m_ColorHistory.length);
+
+        // 重複していない場合のみ追加
+        if (!isDuplicate) {
+            // 念のためIllustratorを前面に呼び戻す
+            // これにより操作権限が確実にIllustratorに戻ります
+            BridgeTalk.bringToFront("illustrator");
+
+            // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
+            {
+                var bt = new BridgeTalk();
+                bt.target = "illustrator"; // 自分自身をターゲットにする
+                
+                // 実行したいコードを文字列で記述
+                bt.body = "if(app.documents.length > 0){" +
+                        "  var doc = app.activeDocument;" +
+                        "  var c = new RGBColor();" +
+                        "  c.red=" + rgbArray[0] + "; c.green=" + rgbArray[1] + "; c.blue=" + rgbArray[2] + ";" +
+                        "  doc.defaultFillColor = c;" +
+                        "  app.redraw();" +
+                        "}";
+                        
+                bt.send(); // 通信として投げることで、現在の「ロックされたスレッド」から脱出する
+            }
+
+            // 履歴に追加
+            //履歴リストを表示した際に「直前に取った色」が一番上に来るように、unshiftで色を登録する
+            self.m_ColorHistory.unshift([Number(rgbArray[0]), Number(rgbArray[1]), Number(rgbArray[2])]);
+            $.writeln("History Count: " + self.m_ColorHistory.length);
+        }
+
 
     } catch(e) {
         alert( e.message );
