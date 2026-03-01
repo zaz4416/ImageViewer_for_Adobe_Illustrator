@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/02/26
+// Ver.1.0 : 2026/03/01
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -79,36 +79,57 @@ function checkAndRunPS(imgFile, x, y, callback) {
     var progressWin = new Window("palette", "Photoshop 起動待機中...");
     progressWin.add("statictext", undefined, "Photoshopを起動しています。完了までお待ちください。");
     var bar = progressWin.add("progressbar", [0, 0, 200, 10], 0, maxRetry);
+
+    // ★ 対策1: ウィンドウをアクティブに設定
+    progressWin.active = true;
     progressWin.show();
+    
+    // ★ 対策2: 表示直後にOSに描画を強制する
+    progressWin.update();
 
-    /**
-     * 再帰的なチェック用関数
-     */
-    function waitForLaunch() {
+    //alert("Staet")
+
+    var isLaunched = false;
+
+    // --- 起動待ちループ ---
+    while (retryCount < maxRetry) {
         if (BridgeTalk.isRunning(targetApp)) {
-            progressWin.close();
-            // 起動直後はメッセージを受け付けないことがあるため、1秒追加待機
-            $.sleep(1000); 
-            getPixelColorViaPS(imgFile, x, y, callback);
-            return;
+            isLaunched = true;
+            break; // ループを抜ける
         }
-
-        if (retryCount >= maxRetry) {
-            progressWin.close();
-            alert("タイムアウト: Photoshopの起動を確認できませんでした。\n手動でPhotoshopを起動してから再度お試しください。");
-            return;
-        }
-
-        // カウントアップして再試行
-        retryCount++;
-        bar.value = retryCount;
-        progressWin.update();
         
-        $.sleep(1000); // 1秒待機
-        waitForLaunch();
+        retryCount++;
+        if (bar) bar.value = retryCount;
+        progressWin.update();
+        $.sleep(1000);
     }
 
-    waitForLaunch();
+    if (isLaunched) {
+        $.sleep(2000); // 起動直後の安定待ち
+        
+        // --- 2. 画像が読み込まれているか確認する通信を開始 ---
+        // この時点ではまだ progressWin は開いたままです
+        checkImageOpenedInPS(imgFile, function(isOpened) {
+            
+            // 通信完了でプログレス窓を閉じる
+            if (progressWin) {
+                progressWin.close();
+            }
+
+            if (isOpened) {
+                // 画像があれば解析へ
+                getPixelColorViaPS(imgFile, x, y, callback);
+            } else {
+                alert("Photoshopで画像が開かれていません。");
+            }
+        });
+        
+    } else {
+        progressWin.close();
+        alert("タイムアウト：Photoshopの起動が確認できませんでした。");
+    }
+
+    //alert("End")
 }
 
 
@@ -227,7 +248,6 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_Loupe = new CLoupePalette();
     self.m_Loupe.show();
     self.m_CanvasPos = null;
-
 
     try{
         self.m_Image = getImageSize(imageFile);
@@ -411,6 +431,76 @@ CViewer.prototype.GetCanvas = function() {
 }
 
 
+/**
+ * Photoshop側で画像が開かれているか確認し、なければ読み込む
+ * 完了後、Photoshop側からIllustratorを最前面に呼び戻す
+ */
+function checkImageOpenedInPS(imgFile, onCheckComplete) {
+    var bt = new BridgeTalk();
+    bt.target = "photoshop";
+
+    var psCheckCode = [
+        "(function() {",
+        "    var f = new File('" + imgFile.fullName + "');",
+        "    var targetDoc = null;",
+        "    var success = false;",
+        "    ",
+        "    // 1. すでに開いているドキュメントから一致するものを探す",
+        "    if (app.documents.length > 0) {",
+        "        for (var i = 0; i < app.documents.length; i++) {",
+        "            if (decodeURI(app.documents[i].fullName) === decodeURI(f.fullName)) {",
+        "                targetDoc = app.documents[i];",
+        "                app.activeDocument = targetDoc;",
+        "                success = true; break;",
+        "            }",
+        "        }",
+        "    }",
+        "    ",
+        "    // 2. 開いていない場合は読み込みを試みる",
+        "    if (!success) {",
+        "        if (!f.exists) return 'Error: File not found';",
+        "        try {",
+        "            app.displayDialogs = DialogModes.NO;",
+        "            var openedDoc = open(f);",
+        "            if (openedDoc) {",
+        "                app.activeDocument = openedDoc;",
+        "                success = true;",
+        "            }",
+        "        } catch (e) {",
+        "            return 'Error: ' + e.message;",
+        "        }",
+        "    }",
+        "    ",
+        "    // ★【重要】処理が終わったら、Photoshop側からIllustratorを前面に出す",
+        "    // 送信元(PS)から命令を出すことで、OSのフォーカス規制を突破しやすくなります",
+        "    if (success) BridgeTalk.bringToFront('illustrator');",
+        "    ",
+        "    return success ? 'true' : 'false';",
+        "})();"
+    ].join("\n");
+
+    bt.body = psCheckCode;
+
+    bt.onResult = function(resObj) {
+        var res = resObj.body.replace(/[\r\n]/g, "");
+
+        if (res.indexOf("Error") !== -1) {
+            $.writeln("PS Check Error: " + res);
+            onCheckComplete(false);
+            return;
+        }
+
+        onCheckComplete(res === "true");
+    };
+
+    bt.onError = function(errObj) {
+        $.writeln("BridgeTalk Error: " + errObj.body);
+        onCheckComplete(false);
+    };
+
+    bt.send();
+}
+
 
 /**
  * 1. PNG/JPG等を24bit非圧縮BMPに変換（前処理用）
@@ -463,31 +553,7 @@ function createAnalysisBMP(srcFile) {
     }
 }
 
-/**
- * 2. BMPバイナリから指定座標の色を高速抽出（クリック時用）
- */
-function getPixelColorFromBMP(x, y, bmpFile) {
-    if (!bmpFile || !bmpFile.exists) return null;
-    try {
-        bmpFile.encoding = "BINARY";
-        bmpFile.open("r");
-        bmpFile.seek(18);
-        var w = readInt32(bmpFile);
-        bmpFile.seek(22);
-        var h = readInt32(bmpFile);
-        
-        var rowSize = Math.ceil((w * 3) / 4) * 4;
-        var invY = h - 1 - Math.floor(y);
-        var pos = 54 + (invY * rowSize) + (Math.floor(x) * 3);
-        
-        bmpFile.seek(pos);
-        var b = bmpFile.read(1).charCodeAt(0);
-        var g = bmpFile.read(1).charCodeAt(0);
-        var r = bmpFile.read(1).charCodeAt(0);
-        bmpFile.close();
-        return [r, g, b];
-    } catch (e) { return null; }
-}
+
 
 function readInt32(f) {
     var b = [f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0)];
@@ -515,52 +581,66 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
     // Illustrator側の変数 imageFile, targetX, targetY を使って組み立てます
     var psCode = [
         "(function() {",
-        "  var savedRuler = app.preferences.rulerUnits;",
-        "  app.preferences.rulerUnits = Units.PIXELS;",
-        "  var f = new File('" + imgFile.fullName + "');",
-        "  if (!f.exists) return 'Error: File not found';",
-        "  var doc = open(f, undefined, false);",
-        "  app.activeDocument = doc;",
-        "  if (doc.mode == DocumentMode.INDEXEDCOLOR) doc.changeMode(ChangeMode.RGB);",
-        "  ",
-        "  var safeX = Math.max(0, Math.min(" + targetX + ", doc.width.as('px') - 1));",
-        "  var safeY = Math.max(0, Math.min(" + targetY + ", doc.height.as('px') - 1));",
-        "  ",
-        "  doc.colorSamplers.removeAll();",
-        "  var sampler = doc.colorSamplers.add([safeX, safeY]);",
-        "  var res = Math.round(sampler.color.rgb.red) + ',' + ",
-        "            Math.round(sampler.color.rgb.green) + ',' + ",
-        "            Math.round(sampler.color.rgb.blue);",
-        "  ",
-        "  // --- マーカー管理機能 ---",
-        "  var groupName = 'AI_Picked_Colors';",
-        "  var markerGroup;",
-        "  try {",
-        "    markerGroup = doc.layerSets.getByName(groupName);",
-        "  } catch (e) {",
-        "    markerGroup = doc.layerSets.add();",
-        "    markerGroup.name = groupName;",
-        "  }",
-        "  ",
-        "  var markerLayer = markerGroup.artLayers.add();", // グループ内に追加
-        "  markerLayer.name = 'Color_' + res;",
-        "  ",
-        "  var region = [[safeX-2, safeY-2], [safeX+2, safeY-2], [safeX+2, safeY+2], [safeX-2, safeY+2]];",
-        "  doc.selection.select(region);",
-        "  var fillRGB = new SolidColor();",
-        "  fillRGB.rgb.red = 255; fillRGB.rgb.green = 0; fillRGB.rgb.blue = 0;",
-        "  doc.selection.fill(fillRGB);",
-        "  doc.selection.deselect();",
-        "  ",
-        "  app.preferences.rulerUnits = savedRuler;",
-        "  return res;",
+        "    var savedRuler = app.preferences.rulerUnits;",
+        "    app.preferences.rulerUnits = Units.PIXELS;",
+        "    var f = new File('" + imgFile.fullName + "');",
+        "    if (!f.exists) return 'Error: File not found';",
+        "    ",
+        "    var doc = open(f);",
+        "    app.activeDocument = doc;",
+        "    if (doc.mode === DocumentMode.INDEXEDCOLOR) doc.changeMode(ChangeMode.RGB);",
+        "    ",
+        "    // 座標のクランプ処理（ドキュメントサイズ内に収める）",
+        "    var w = doc.width.as('px');",
+        "    var h = doc.height.as('px');",
+        "    var safeX = Math.max(0, Math.min(" + targetX + ", w - 1));",
+        "    var safeY = Math.max(0, Math.min(" + targetY + ", h - 1));",
+        "    ",
+        "    // サンプラーで色を取得",
+        "    doc.colorSamplers.removeAll();",
+        "    var sampler = doc.colorSamplers.add([safeX, safeY]);",
+        "    var rgb = sampler.color.rgb;",
+        "    var res = Math.round(rgb.red) + ',' + Math.round(rgb.green) + ',' + Math.round(rgb.blue);",
+        "    ",
+        "    // --- マーカー管理（レイヤーセット構造の最適化） ---",
+        "    var groupName = 'AI_Picked_Colors';",
+        "    var markerGroup;",
+        "    try {",
+        "        markerGroup = doc.layerSets.getByName(groupName);",
+        "    } catch (e) {",
+        "        markerGroup = doc.layerSets.add();",
+        "        markerGroup.name = groupName;",
+        "    }",
+        "    ",
+        "    // 新規レイヤー作成と描画処理",
+        "    var markerLayer = markerGroup.artLayers.add();",
+        "    markerLayer.name = 'Color_' + res + ' (at ' + Math.round(safeX) + ',' + Math.round(safeY) + ')';",
+        "    ",
+        "    // 選択範囲を作成（4pxの正方形）",
+        "    var r = 2; // 半径",
+        "    var region = [[safeX-r, safeY-r], [safeX+r, safeY-r], [safeX+r, safeY+r], [safeX-r, safeY+r]];",
+        "    doc.selection.select(region);",
+        "    ",
+        "    var fillColor = new SolidColor();",
+        "    fillColor.rgb.red = 255; fillColor.rgb.green = 0; fillColor.rgb.blue = 0;",
+        "    ",
+        "    try {",
+        "        doc.selection.fill(fillColor);",
+        "        doc.selection.deselect();",
+        "    } catch(e) {",
+        "        // 背景レイヤーのみの場合などのエラー回避",
+        "    }",
+        "    ",
+        "    app.preferences.rulerUnits = savedRuler;",
+        "    return res;",
         "})();"
     ].join("\n");
 
     bt.body = psCode;
 
-    // 4. 結果が戻ってきた時の処理
+
     bt.onResult = function(resObj) {
+
         if (resObj.body.indexOf("Error") !== -1) {
             alert(resObj.body);
             return;
@@ -643,13 +723,6 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         
         // BridgeTalkでPSを呼び出し
         checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
-
-        //var rgbArrayX = null;
-        //analysisFile = createAnalysisBMP(imageFile);
-        //var rgbArrayX = getPixelColorFromBMP(event.screenX, event.screenY, analysisFile);
-        //if (rgbArrayX) {
-        //    alert("CLI取得成功: RGB(" + rgbArrayX.join(",") + ")");
-        //}
 
     } catch(e) {
         alert( e.message );

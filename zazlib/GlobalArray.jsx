@@ -1,5 +1,5 @@
 ﻿
-// Ver.1.0 : 2026/02/26
+// Ver.1.0 : 2026/03/01
 
 #include "safeEvalFile.jsx"
 
