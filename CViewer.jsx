@@ -246,7 +246,6 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_Loupe = new CLoupePalette();
     self.m_Loupe.show();
     self.m_CanvasPos = null;
-    self.m_Dialog = pDialog;
 
     try{
         self.m_Image = getImageSize(imageFile);
@@ -482,9 +481,6 @@ function checkImageOpenedInPS(imgFile, onCheckComplete) {
 
     bt.onResult = function(resObj) {
         var res = resObj.body.replace(/[\r\n]/g, "");
-        
-        // 戻ってきた直後にIllustrator側でも念押しで前面化を実行
-        BridgeTalk.bringToFront("illustrator");
 
         if (res.indexOf("Error") !== -1) {
             $.writeln("PS Check Error: " + res);
@@ -643,11 +639,6 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
 
     bt.onResult = function(resObj) {
 
-        // 4. 結果が戻ってきた時の処理
-        // 念のためIllustratorを前面に呼び戻す
-        // これにより操作権限が確実にIllustratorに戻ります
-        BridgeTalk.bringToFront("illustrator");
-
         if (resObj.body.indexOf("Error") !== -1) {
             alert(resObj.body);
             return;
@@ -730,11 +721,6 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         
         // BridgeTalkでPSを呼び出し
         checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
-
-        // ★ 対策1: ウィンドウをアクティブに設定
-        BridgeTalk.bringToFront("illustrator");
-        pView.m_Dialog.active = true;
-        pView.m_Dialog.show();
 
     } catch(e) {
         alert( e.message );
