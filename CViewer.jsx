@@ -77,36 +77,59 @@ function checkAndRunPS(imgFile, x, y, callback) {
     var progressWin = new Window("palette", "Photoshop 起動待機中...");
     progressWin.add("statictext", undefined, "Photoshopを起動しています。完了までお待ちください。");
     var bar = progressWin.add("progressbar", [0, 0, 200, 10], 0, maxRetry);
+
+    // ★ 対策1: ウィンドウをアクティブに設定
+    progressWin.active = true;
     progressWin.show();
+    
+    // ★ 対策2: 表示直後にOSに描画を強制する
+    progressWin.update();
 
-    /**
-     * 再帰的なチェック用関数
-     */
-    function waitForLaunch() {
+    //alert("Staet")
+
+    var isLaunched = false;
+
+    // --- 起動待ちループ ---
+    while (retryCount < maxRetry) {
         if (BridgeTalk.isRunning(targetApp)) {
-            progressWin.close();
-            // 起動直後はメッセージを受け付けないことがあるため、1秒追加待機
-            $.sleep(1000); 
-            getPixelColorViaPS(imgFile, x, y, callback);
-            return;
+            isLaunched = true;
+            break; // ループを抜ける
         }
-
-        if (retryCount >= maxRetry) {
-            progressWin.close();
-            alert("タイムアウト: Photoshopの起動を確認できませんでした。\n手動でPhotoshopを起動してから再度お試しください。");
-            return;
-        }
-
-        // カウントアップして再試行
-        retryCount++;
-        bar.value = retryCount;
-        progressWin.update();
         
-        $.sleep(1000); // 1秒待機
-        waitForLaunch();
+        retryCount++;
+        if (bar) bar.value = retryCount;
+        progressWin.update();
+        $.sleep(1000);
     }
 
-    waitForLaunch();
+    if (isLaunched) {
+        $.sleep(2000); // 起動直後の安定待ち
+        
+        // --- 2. 画像が読み込まれているか確認する通信を開始 ---
+        // この時点ではまだ progressWin は開いたままです
+        checkImageOpenedInPS(imgFile, function(isOpened) {
+
+            // ★ 対策1: ウィンドウをアクティブに設定
+            progressWin.active = true;
+            progressWin.show();
+            
+            // ★ 通信完了！ここでプログレスウィンドウを閉じる
+            if (progressWin) progressWin.close(); 
+
+            if (isOpened) {
+                // 画像があれば解析へ
+                getPixelColorViaPS(imgFile, x, y, callback);
+            } else {
+                alert("Photoshopで画像が開かれていません。");
+            }
+        });
+        
+    } else {
+        progressWin.close();
+        alert("タイムアウト：Photoshopの起動が確認できませんでした。");
+    }
+
+    //alert("End")
 }
 
 
@@ -409,6 +432,74 @@ CViewer.prototype.GetCanvas = function() {
 }
 
 
+/**
+ * Photoshop側で画像が開かれているか確認し、なければ読み込む
+ */
+function checkImageOpenedInPS(imgFile, onCheckComplete) {
+    var bt = new BridgeTalk();
+    bt.target = "photoshop";
+
+    // getPixelColorViaPS と同じ形式でパスを渡す
+    var psCheckCode = [
+        "(function() {",
+        "    var f = new File('" + imgFile.fullName + "');",
+        "    var targetDoc = null;",
+        "    ",
+        "    // 1. すでに開いているドキュメントから一致するものを探す",
+        "    if (app.documents.length > 0) {",
+        "        for (var i = 0; i < app.documents.length; i++) {",
+        "            // fullName同士、またはdecodeURIでパスを比較",
+        "            if (decodeURI(app.documents[i].fullName) === decodeURI(f.fullName)) {",
+        "                targetDoc = app.documents[i];",
+        "                app.activeDocument = targetDoc;",
+        "                return 'true';",
+        "            }",
+        "        }",
+        "    }",
+        "    ",
+        "    // 2. 開いていない場合は読み込みを試みる",
+        "    if (!f.exists) return 'Error: File not found';",
+        "    ",
+        "    try {",
+        "        // 警告ダイアログ等で止まらないように設定",
+        "        app.displayDialogs = DialogModes.NO;",
+        "        var openedDoc = open(f);",
+        "        if (openedDoc) {",
+        "            app.activeDocument = openedDoc;",
+        "            return 'true';",
+        "        }",
+        "    } catch (e) {",
+        "        return 'Error: ' + e.message;",
+        "    }",
+        "    ",
+        "    return 'false';",
+        "})();"
+    ].join("\n");
+
+    bt.body = psCheckCode;
+
+    bt.onResult = function(resObj) {
+        // 余計な改行等を除去して判定
+        var res = resObj.body.replace(/[\r\n]/g, "");
+        
+        if (res.indexOf("Error") !== -1) {
+            $.writeln("PS Check Error: " + res);
+            onCheckComplete(false);
+            return;
+        }
+
+        // 'true' が返ってくれば画像は準備完了
+        onCheckComplete(res === "true");
+    };
+
+    bt.onError = function(errObj) {
+        $.writeln("BridgeTalk Error: " + errObj.body);
+        onCheckComplete(false);
+    };
+
+    bt.send();
+}
+
 
 /**
  * 1. PNG/JPG等を24bit非圧縮BMPに変換（前処理用）
@@ -461,31 +552,7 @@ function createAnalysisBMP(srcFile) {
     }
 }
 
-/**
- * 2. BMPバイナリから指定座標の色を高速抽出（クリック時用）
- */
-function getPixelColorFromBMP(x, y, bmpFile) {
-    if (!bmpFile || !bmpFile.exists) return null;
-    try {
-        bmpFile.encoding = "BINARY";
-        bmpFile.open("r");
-        bmpFile.seek(18);
-        var w = readInt32(bmpFile);
-        bmpFile.seek(22);
-        var h = readInt32(bmpFile);
-        
-        var rowSize = Math.ceil((w * 3) / 4) * 4;
-        var invY = h - 1 - Math.floor(y);
-        var pos = 54 + (invY * rowSize) + (Math.floor(x) * 3);
-        
-        bmpFile.seek(pos);
-        var b = bmpFile.read(1).charCodeAt(0);
-        var g = bmpFile.read(1).charCodeAt(0);
-        var r = bmpFile.read(1).charCodeAt(0);
-        bmpFile.close();
-        return [r, g, b];
-    } catch (e) { return null; }
-}
+
 
 function readInt32(f) {
     var b = [f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0)];
@@ -660,13 +727,6 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         
         // BridgeTalkでPSを呼び出し
         checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
-
-        //var rgbArrayX = null;
-        //analysisFile = createAnalysisBMP(imageFile);
-        //var rgbArrayX = getPixelColorFromBMP(event.screenX, event.screenY, analysisFile);
-        //if (rgbArrayX) {
-        //    alert("CLI取得成功: RGB(" + rgbArrayX.join(",") + ")");
-        //}
 
     } catch(e) {
         alert( e.message );
