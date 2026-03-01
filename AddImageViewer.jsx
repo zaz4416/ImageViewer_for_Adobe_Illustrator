@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/02/27
+// Ver.1.0 : 2026/03/01
 
 #target illustrator
 #targetengine "main"
@@ -527,6 +527,9 @@ function main()
             Obj.SetDialogTitle( "[" + Index + "]" + Title );
 
             Obj.show();                     // インスタンスを表示
+
+            // ★ 強制的にアクティブ（最前面）にする
+            Obj.m_Dialog.active = true;
 
             // palette なら show() の直後でもここが実行される
             $.writeln("表示されました！"); 

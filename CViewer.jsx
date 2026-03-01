@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/02/26
+// Ver.1.0 : 2026/03/01
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -518,7 +518,8 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
         "    var f = new File('" + imgFile.fullName + "');",
         "    if (!f.exists) return 'Error: File not found';",
         "    ",
-        "    var doc = open(f);",
+        "    // 第3引数を true にして、ドキュメントを非表示（不可視）で開く",
+        "    var doc = open(f, undefined, true);",
         "    app.activeDocument = doc;",
         "    if (doc.mode === DocumentMode.INDEXEDCOLOR) doc.changeMode(ChangeMode.RGB);",
         "    ",
@@ -570,8 +571,14 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
 
     bt.body = psCode;
 
-    // 4. 結果が戻ってきた時の処理
+
     bt.onResult = function(resObj) {
+
+        // 4. 結果が戻ってきた時の処理
+        // 念のためIllustratorを前面に呼び戻す
+        // これにより操作権限が確実にIllustratorに戻ります
+        BridgeTalk.bringToFront("illustrator");
+
         if (resObj.body.indexOf("Error") !== -1) {
             alert(resObj.body);
             return;
