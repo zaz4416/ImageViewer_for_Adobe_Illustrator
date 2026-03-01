@@ -108,13 +108,11 @@ function checkAndRunPS(imgFile, x, y, callback) {
         // --- 2. 画像が読み込まれているか確認する通信を開始 ---
         // この時点ではまだ progressWin は開いたままです
         checkImageOpenedInPS(imgFile, function(isOpened) {
-
-            // ★ 対策1: ウィンドウをアクティブに設定
-            progressWin.active = true;
-            progressWin.show();
             
-            // ★ 通信完了！ここでプログレスウィンドウを閉じる
-            if (progressWin) progressWin.close(); 
+            // 通信完了でプログレス窓を閉じる
+            if (progressWin) {
+                progressWin.close();
+            }
 
             if (isOpened) {
                 // 画像があれば解析へ
@@ -248,7 +246,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_Loupe = new CLoupePalette();
     self.m_Loupe.show();
     self.m_CanvasPos = null;
-
+    self.m_Dialog = pDialog;
 
     try{
         self.m_Image = getImageSize(imageFile);
@@ -434,61 +432,66 @@ CViewer.prototype.GetCanvas = function() {
 
 /**
  * Photoshop側で画像が開かれているか確認し、なければ読み込む
+ * 完了後、Photoshop側からIllustratorを最前面に呼び戻す
  */
 function checkImageOpenedInPS(imgFile, onCheckComplete) {
     var bt = new BridgeTalk();
     bt.target = "photoshop";
 
-    // getPixelColorViaPS と同じ形式でパスを渡す
     var psCheckCode = [
         "(function() {",
         "    var f = new File('" + imgFile.fullName + "');",
         "    var targetDoc = null;",
+        "    var success = false;",
         "    ",
         "    // 1. すでに開いているドキュメントから一致するものを探す",
         "    if (app.documents.length > 0) {",
         "        for (var i = 0; i < app.documents.length; i++) {",
-        "            // fullName同士、またはdecodeURIでパスを比較",
         "            if (decodeURI(app.documents[i].fullName) === decodeURI(f.fullName)) {",
         "                targetDoc = app.documents[i];",
         "                app.activeDocument = targetDoc;",
-        "                return 'true';",
+        "                success = true; break;",
         "            }",
         "        }",
         "    }",
         "    ",
         "    // 2. 開いていない場合は読み込みを試みる",
-        "    if (!f.exists) return 'Error: File not found';",
-        "    ",
-        "    try {",
-        "        // 警告ダイアログ等で止まらないように設定",
-        "        app.displayDialogs = DialogModes.NO;",
-        "        var openedDoc = open(f);",
-        "        if (openedDoc) {",
-        "            app.activeDocument = openedDoc;",
-        "            return 'true';",
+        "    if (!success) {",
+        "        if (!f.exists) return 'Error: File not found';",
+        "        try {",
+        "            app.displayDialogs = DialogModes.NO;",
+        "            var openedDoc = open(f);",
+        "            if (openedDoc) {",
+        "                app.activeDocument = openedDoc;",
+        "                success = true;",
+        "            }",
+        "        } catch (e) {",
+        "            return 'Error: ' + e.message;",
         "        }",
-        "    } catch (e) {",
-        "        return 'Error: ' + e.message;",
         "    }",
         "    ",
-        "    return 'false';",
+        "    // ★【重要】処理が終わったら、Photoshop側からIllustratorを前面に出す",
+        "    // 送信元(PS)から命令を出すことで、OSのフォーカス規制を突破しやすくなります",
+        "    if (success) BridgeTalk.bringToFront('illustrator');",
+        "    ",
+        "    return success ? 'true' : 'false';",
         "})();"
     ].join("\n");
 
     bt.body = psCheckCode;
 
     bt.onResult = function(resObj) {
-        // 余計な改行等を除去して判定
         var res = resObj.body.replace(/[\r\n]/g, "");
         
+        // 戻ってきた直後にIllustrator側でも念押しで前面化を実行
+        BridgeTalk.bringToFront("illustrator");
+
         if (res.indexOf("Error") !== -1) {
             $.writeln("PS Check Error: " + res);
             onCheckComplete(false);
             return;
         }
 
-        // 'true' が返ってくれば画像は準備完了
         onCheckComplete(res === "true");
     };
 
@@ -727,6 +730,11 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         
         // BridgeTalkでPSを呼び出し
         checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
+
+        // ★ 対策1: ウィンドウをアクティブに設定
+        BridgeTalk.bringToFront("illustrator");
+        pView.m_Dialog.active = true;
+        pView.m_Dialog.show();
 
     } catch(e) {
         alert( e.message );
