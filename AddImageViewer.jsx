@@ -309,6 +309,9 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
 
     try {
 
+        // ★ 強制的にアクティブ（最前面）にする
+        self.m_Dialog.active = true;
+
         // ★対策1: Illustratorを最前面に呼び戻す
         // これをしないと、ドキュメントがあっても「無い」と判定されることがあります
         BridgeTalk.bringToFront("illustrator");
@@ -340,19 +343,24 @@ CImageViewDLg.prototype.PickUpedColors = function(rgbArray) {
             gph.backgroundColor = myBrush;
         }
 
-        // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
-        if (app.documents.length > 0) {
-            var doc = app.activeDocument;
-            var newColor = new RGBColor();
-            newColor.red = r;
-            newColor.green = g;
-            newColor.blue = b;
+        // 念のためIllustratorを前面に呼び戻す
+        // これにより操作権限が確実にIllustratorに戻ります
+        BridgeTalk.bringToFront("illustrator");
 
-            // 塗り色を適用
-            doc.defaultFillColor = newColor;
+        // 4. Illustratorのデフォルト塗り色にも反映（おまけ）
+        {
+            var bt = new BridgeTalk();
+            bt.target = "illustrator"; // 自分自身をターゲットにする
             
-            // 画面を更新して反映を即座に見せる
-            app.redraw();
+            // 実行したいコードを文字列で記述
+            bt.body = "if(app.documents.length > 0){" +
+                    "  var c = new RGBColor();" +
+                    "  c.red=" + rgbArray[0] + "; c.green=" + rgbArray[1] + "; c.blue=" + rgbArray[2] + ";" +
+                    "  app.documents[0].defaultFillColor = c;" +
+                    "  app.redraw();" +
+                    "}";
+                    
+            bt.send(); // 通信として投げることで、現在の「ロックされたスレッド」から脱出する
         }
 
         // 履歴に追加
@@ -531,7 +539,6 @@ function main()
             // ★ 強制的にアクティブ（最前面）にする
             Obj.m_Dialog.active = true;
 
-            // palette なら show() の直後でもここが実行される
             $.writeln("表示されました！"); 
         }else {
             alert( LangStringsForViewer.Msg_cant_run );
