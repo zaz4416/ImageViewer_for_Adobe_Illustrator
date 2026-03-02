@@ -233,8 +233,6 @@ CLoupePalette.prototype.hide = function() { this.m_Win.hide(); };
 CLoupePalette.prototype.close = function() { this.m_Win.close(); };
 CLoupePalette.prototype.IsOpne = function() { return this.m_Win.visible; };
 
-;
-
 // ---------------------------------------------------------------------------------
 
 //-----------------------------------
