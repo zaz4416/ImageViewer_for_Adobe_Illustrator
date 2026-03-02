@@ -2,6 +2,9 @@
 // Ver.1.0 : 2026/03/01
 
 
+#include "safeEvalFile.jsx"
+safeEvalFile(GetScriptDir() + "GlobalArray.jsx");
+
 // --- グローバル関数 -----------------------------------------------------------------
 
 // アプリケーションのバージョンを取得

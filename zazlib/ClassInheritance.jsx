@@ -4,6 +4,8 @@
 // クラス継承するためのコードあ
 //_/_/_/_/_/_/_/_/_/_/_/_/
 
+#include "safeEvalFile.jsx"
+
 // --- グローバル関数 -----------------------------------------------------------------
 
 function ClassInheritance(subClass, superClass) {

@@ -40,6 +40,7 @@
 // ExtendScriptとは、adobeの作ったECMA Script(ES3)準拠の独自言語。
 // adobe製品で使用できるスクリプト言語になります。
 
+#include "safeEvalFile.jsx"
 
 
 // 定数定義

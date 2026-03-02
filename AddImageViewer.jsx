@@ -10,13 +10,13 @@
 #target illustrator
 #targetengine "main"
 
+#include "Zazlib/safeEvalFile.jsx"
 
 // スクリプト実行時に外部のJSXを読み込む (#includeにすると、main関数が終了した時点で、ダイアログが表示されなくなる)
-$.evalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
-$.evalFile(GetScriptDir() + "ZazLib/Language.jsx");
-$.evalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
-$.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
-$.evalFile(GetScriptDir() + "CViewer.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/Language.jsx");
+safeEvalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
+safeEvalFile(GetScriptDir() + "CViewer.jsx");
 
 
 // 言語ごとの辞書を定義
