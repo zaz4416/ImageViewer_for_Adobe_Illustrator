@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/03/01
+// Ver.1.0 : 2026/03/02
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -227,7 +227,11 @@ CLoupePalette.prototype.GetLocation = function() {
 };
 
 CLoupePalette.prototype.show = function() { this.m_Win.show(); };
+CLoupePalette.prototype.hide = function() { this.m_Win.hide(); };
 CLoupePalette.prototype.close = function() { this.m_Win.close(); };
+CLoupePalette.prototype.IsOpne = function() { return this.m_Win.visible; };
+
+;
 
 // ---------------------------------------------------------------------------------
 
@@ -243,8 +247,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
     self.mousePos    = { x: 0, y: 0 };  // マウスのローカル座標を保存するオブジェクト
     self.m_UIScale   = _UIScale;        // ディスプレイのスケーリング倍率を保存する
-    self.m_Loupe = new CLoupePalette();
-    self.m_Loupe.show();
+    self.m_Loupe = null;
     self.m_CanvasPos = null;
 
     try{
@@ -311,7 +314,7 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 var deltaY = currentWinPos.y - self.m_CanvasPos.y;
 
                 // ルーペの位置を更新（メイン窓が動いた分だけルーペも動かす）
-                if (self.m_Loupe && self.m_Loupe.m_Win) {
+                if (self.m_Loupe !== null && self.m_Loupe.m_Win) {
                     var loupePos = self.m_Loupe.GetLocation();
                     self.m_Loupe.Locate(loupePos.x + deltaX, loupePos.y + deltaY);
                 }
@@ -353,7 +356,9 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                         zxzY =  Math.floor( imageHeight * ( self.mousePos.y / canvasHeight ) );
                     
                     // マウス位置に応じて拡大鏡を更新
-                    self.m_Loupe.update(self.uiImage, imageWidth, imageHeight, pView.m_UIScale, zxzX, zxzY);
+                    if ( self.m_Loupe  !== null ) {
+                        self.m_Loupe.update(self.uiImage, imageWidth, imageHeight, pView.m_UIScale, zxzX, zxzY);
+                    }
                 }
             }
 
@@ -410,7 +415,10 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
 CViewer.prototype.close = function() {
     try {
         var self = this;
-        self.m_Loupe.close();
+        if ( self.m_Loupe !== null ) {
+            self.m_Loupe.close();
+        }
+
     } catch(e) {
         alert( e.message );
     }
@@ -427,6 +435,39 @@ CViewer.prototype.GetCanvas = function() {
         alert( e.message );
     }
 }
+
+CViewer.prototype.ShowLoupe= function() {
+    try {
+        var self = this;
+        if ( self.m_Loupe === null ) {
+            self.m_Loupe = new CLoupePalette();
+        }
+        self.m_Loupe.show();
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+CViewer.prototype.HideLoupe= function() {
+    try {
+        var self = this;
+        if ( self.m_Loupe !== null ) {
+            self.m_Loupe.hide();
+        }
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+CViewer.prototype.IsOpenLoupe= function(pObj) {
+    var self = this;
+    if ( self.m_Loupe !== null ) {
+        return self.m_Loupe.IsOpne();
+    }
+    return false;
+}
+
+
 
 
 /**
@@ -690,6 +731,13 @@ CViewerOpration.prototype.showContextMenu = function(event, pObj) {
         
         // 2. PopMenuの項目を追加
         menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
+
+        if ( GlbObj.m_Viewer.IsOpenLoupe()) {
+            menuWin.AddtMenu( LangStringsForViewer.Menu_HiheLoupe, function() { GlbObj.m_Viewer.HideLoupe(); } );
+        } else {
+            menuWin.AddtMenu( LangStringsForViewer.Menu_ShowLoupe, function() { GlbObj.m_Viewer.ShowLoupe(); } );
+        }
+
         menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize, function() { GlbObj.CreatePaletteObjects(); } );
 
         // 3. メニューを表示

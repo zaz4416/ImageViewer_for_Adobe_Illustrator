@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/03/01
+// Ver.1.0 : 2026/03/02
 
 #target illustrator
 #targetengine "main"
@@ -40,6 +40,14 @@ var MyDictionaryForViewer = {
     Msg_TtileOfSelectJpegFile: {
         en : "Select a Jpeg file",
         ja : "Jpegファイルをひとつ選択"
+    },
+     Menu_ShowLoupe: {
+        en : "Show loupe",
+        ja : "拡大鏡を表示"
+    },
+    Menu_HiheLoupe: {
+        en : "Hide loupe",
+        ja : "拡大鏡を隠す"
     },
      Menu_LoadImage: {
         en : "Load image",
