@@ -732,10 +732,17 @@ CViewerOpration.prototype.showContextMenu = function(event, pObj) {
         // 2. PopMenuの項目を追加
         menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
 
-        if ( GlbObj.m_Viewer.IsOpenLoupe()) {
-            menuWin.AddtMenu( LangStringsForViewer.Menu_HiheLoupe, function() { GlbObj.m_Viewer.HideLoupe(); } );
-        } else {
-            menuWin.AddtMenu( LangStringsForViewer.Menu_ShowLoupe, function() { GlbObj.m_Viewer.ShowLoupe(); } );
+        {
+            var viewer = GlbObj.m_Viewer;
+            var state  = viewer.IsOpenLoupe() ? "Hide" : "Show";
+
+            // キー名（Hide/Show）からラベルとメソッド名を自動選択
+            var config = {
+                Hide: { label: LangStringsForViewer.Menu_HiheLoupe, method: "HideLoupe" },
+                Show: { label: LangStringsForViewer.Menu_ShowLoupe, method: "ShowLoupe" }
+            }[state];
+
+            menuWin.AddtMenu(config.label, function() { viewer[config.method](); });
         }
 
         menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize, function() { GlbObj.CreatePaletteObjects(); } );
