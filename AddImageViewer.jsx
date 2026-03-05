@@ -92,6 +92,81 @@ function GetScriptDir() {
 
 // ---------------------------------------------------------------------------------
 
+//-----------------------------------
+// クラス CViewerOpration
+//-----------------------------------
+
+// コンストラクタ
+function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) { 
+    CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ呼び出し
+}
+
+ClassInheritance(CViewerOpration, CViewer);   // クラス継承
+
+
+/**
+ * 右クリックメニューの構築と表示
+ */
+CViewerOpration.prototype.showContextMenu = function(event, pObj) {
+    try {
+        var GlbObj = pObj.GetDialogObject();
+
+        // 1. PopMenuを作成
+        var menuWin = new CPopMenu( event );
+        
+        // 2. PopMenuの項目を追加
+        menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
+
+        {
+            var viewer = GlbObj.m_Viewer;
+            var state  = viewer.IsOpenLoupe() ? "Hide" : "Show";
+
+            // キー名（Hide/Show）からラベルとメソッド名を自動選択
+            var config = {
+                Hide: { label: LangStringsForViewer.Menu_HiheLoupe, method: "HideLoupe" },
+                Show: { label: LangStringsForViewer.Menu_ShowLoupe, method: "ShowLoupe" }
+            }[state];
+
+            menuWin.AddtMenu(config.label, function() { viewer[config.method](); });
+        }
+
+        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize, function() { GlbObj.CreatePaletteObjects(); } );
+
+        // 3. メニューを表示
+        menuWin.show();
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+
+/**
+ * 左クリックメニューの構築と表示
+ */
+CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
+    try {
+        var GlbObj  = pObj.GetDialogObject();
+        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
+
+        var pView   = GlbObj.m_Viewer;
+        var pCanvas = GlbObj.m_Viewer.m_Canvas;
+        var imageWidth   = pView.m_Image.width;      // 画像の幅
+        var imageHeight  = pView.m_Image.height;     // 画像の高さ
+        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ
+        var canvasLocation = GetMouseLocalLocation(event, pCanvas);    
+        var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
+        var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
+        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
+        
+        // BridgeTalkでPSを呼び出し
+        checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
+
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
 
 
 //-----------------------------------

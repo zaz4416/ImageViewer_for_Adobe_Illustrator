@@ -459,8 +459,6 @@ CViewer.prototype.IsOpenLoupe= function(pObj) {
 }
 
 
-
-
 /**
  * Photoshop側で画像が開かれているか確認し、なければ読み込む
  * 完了後、Photoshop側からIllustratorを最前面に呼び戻す
@@ -529,65 +527,6 @@ function checkImageOpenedInPS(imgFile, onCheckComplete) {
     };
 
     bt.send();
-}
-
-
-/**
- * 1. PNG/JPG等を24bit非圧縮BMPに変換（前処理用）
- */
-function createAnalysisBMP(srcFile) {
-    if (!srcFile || !srcFile.exists) return null;
-
-    var parentFolder = srcFile.path;
-    
-    // 1. 書き出し先のパスを決定（タイムスタンプで一意に）
-    var timeStamp = new Date().getTime();
-    var tempBMP = new File(parentFolder + "/zaz_spoit_" + timeStamp + ".bmp");
-
-    var doc = null;
-
-    try {
-        // 2. ★新規ドキュメントを「追加」する
-        // [カラーモード, 幅, 高さ] ※画像より十分大きいサイズで作成
-        doc = app.documents.add(DocumentColorSpace.RGB, 2000, 2000);
-
-        // 3. ★画像をドキュメントに配置する
-        var pItem = doc.placedItems.add();
-        pItem.file = srcFile;
-        
-        // 座標を左上(0,0)に固定
-        pItem.position = [0, 0]; 
-
-        // 4. 書き出しオプション（24bit非圧縮BMPを保証）
-        var opts = new ImageCaptureOptions();
-        opts.antiAliasing = false; // 色を忠実に再現するためOFF
-        opts.matte = false;
-
-        // 5. 画像のサイズに合わせて範囲を決定 [top, left, bottom, right]
-        // Illustrator座標系：左上が(0,0)の場合、下方向はマイナス値
-        var clipRect = [0, 0, -pItem.height, pItem.width];
-        
-        // BMPとして書き出しを実行
-        doc.imageCapture(tempBMP, clipRect, opts);
-
-        // 6. 後片付け：作成したドキュメントを保存せずに閉じる
-        doc.close(SaveOptions.DONOTSAVECHANGES);
-
-        $.writeln("Analysis BMP generated at: " + tempBMP.fsName);
-        return tempBMP;
-
-    } catch (e) {
-        $.writeln("BMP Creation Error: " + e.message);
-        if (doc) doc.close(SaveOptions.DONOTSAVECHANGES);
-        return null;
-    }
-}
-
-
-
-function readInt32(f) {
-    var b = [f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0), f.read(1).charCodeAt(0)];
-    return (b[3] << 24) | (b[2] << 16) | (b[1] << 8) | b[0];
 }
 
 
@@ -694,81 +633,4 @@ function getPixelColorViaPS(imgFile, x, y, callback) {
 
     // 6. 送信
     bt.send();
-}
-
-
-
-//-----------------------------------
-// クラス CViewerOpration
-//-----------------------------------
-
-// コンストラクタ
-function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) { 
-    CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ呼び出し
-}
-
-ClassInheritance(CViewerOpration, CViewer);   // クラス継承
-
-
-/**
- * 右クリックメニューの構築と表示
- */
-CViewerOpration.prototype.showContextMenu = function(event, pObj) {
-    try {
-        var GlbObj = pObj.GetDialogObject();
-
-        // 1. PopMenuを作成
-        var menuWin = new CPopMenu( event );
-        
-        // 2. PopMenuの項目を追加
-        menuWin.AddtMenu( LangStringsForViewer.Menu_LoadImage, function() { GlbObj.onLoadImageClick(); } );
-
-        {
-            var viewer = GlbObj.m_Viewer;
-            var state  = viewer.IsOpenLoupe() ? "Hide" : "Show";
-
-            // キー名（Hide/Show）からラベルとメソッド名を自動選択
-            var config = {
-                Hide: { label: LangStringsForViewer.Menu_HiheLoupe, method: "HideLoupe" },
-                Show: { label: LangStringsForViewer.Menu_ShowLoupe, method: "ShowLoupe" }
-            }[state];
-
-            menuWin.AddtMenu(config.label, function() { viewer[config.method](); });
-        }
-
-        menuWin.AddtMenu( LangStringsForViewer.Menu_ResetImageSize, function() { GlbObj.CreatePaletteObjects(); } );
-
-        // 3. メニューを表示
-        menuWin.show();
-    } catch(e) {
-        alert( e.message );
-    }
-}
-
-
-/**
- * 左クリックメニューの構築と表示
- */
-CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
-    try {
-        var GlbObj  = pObj.GetDialogObject();
-        //alert("exevt:" + event.screenX + ", " + event.screenY); // デバッグ用：クリック位置のスクリーン座標を表示
-
-        var pView   = GlbObj.m_Viewer;
-        var pCanvas = GlbObj.m_Viewer.m_Canvas;
-        var imageWidth   = pView.m_Image.width;      // 画像の幅
-        var imageHeight  = pView.m_Image.height;     // 画像の高さ
-        var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
-        var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ
-        var canvasLocation = GetMouseLocalLocation(event, pCanvas);    
-        var zxzX =  Math.floor( imageWidth  * ( canvasLocation.x / canvasWidth  ) );
-        var zxzY =  Math.floor( imageHeight * ( canvasLocation.y / canvasHeight ) );
-        //alert("Clicked at local coordinates: (" + zxzX + ", " + zxzY + ")");
-        
-        // BridgeTalkでPSを呼び出し
-        checkAndRunPS(imageFile, zxzX, zxzY, function(rgbArray) { GlbObj.PickUpedColors(rgbArray);});
-
-    } catch(e) {
-        alert( e.message );
-    }
 }
