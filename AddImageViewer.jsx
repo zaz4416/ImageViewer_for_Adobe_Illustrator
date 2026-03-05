@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/03/02
+// Ver.1.0 : 2026/03/05
 
 #target illustrator
 #targetengine "main"
@@ -70,28 +70,8 @@ var LangStringsForViewer = GetWordsFromDictionary( MyDictionaryForViewer );
 // オブジェクトの最大保持数
 var _MAX_INSTANCES = 5;
 
-// ディスプレイのスケーリング倍率を保存する
-var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定   
-
-
 
 // --- グローバル関数 -----------------------------------------------------------------
-
-/**
- * 現在のスケーリング倍率（UI係数）を取得する
- * @param {Control} control 表示済みのUIパーツ
- * @returns {Number} 倍率 (1.0, 1.25, 2.0 など)
- */
-function getUIScale(control) {
-    if (!control.screenBounds) return 1.25;
-    
-    // 物理幅 / 論理幅 を計算
-    var scale = control.screenBounds.width / control.size.width;
-    
-    // 小数点第2位で丸める（誤差対策）
-    return Math.round(scale * 100) / 100;
-}
-
 
 /**
  * 実行中スクリプトの親フォルダ（Folderオブジェクト）を返す。
@@ -109,85 +89,6 @@ function GetScriptDir() {
     // 末尾にスラッシュがなければ付与して返す
     return dirPath.replace(/\/*$/, "/");
 }
-
-
-/**
- * メインモニターの有効な解像度（タスクバー等を除いた範囲）を取得
- * @returns {Object} {width, height}
- */
-function getScreenResolution() {
-    // 0番目がメインモニター。複数ある場合は必要に応じてループ
-    var primaryScreen = $.screens[0]; 
-    
-    // left/top/right/bottom が絶対座標で得られる
-    var screenW = primaryScreen.right - primaryScreen.left;
-    var screenH = primaryScreen.bottom - primaryScreen.top;
-
-    var isMac = ($.os.indexOf("Mac") !== -1);
-    var isWin = ($.os.indexOf("Win") !== -1);
-    var scale = 1;
-
-    if (isMac) {
-        // Macにおいて、論理幅が 2000px 以下ならほぼ確実に 2倍(Retina) です
-        // 近年の MacBook / iMac はこの法則が適用されます
-        var scale = (screenW <= 2000) ? 2 : 1;
-    }
-    
-    return {
-        width:  screenW * scale,
-        height: screenH * scale
-    };
-}
-
-
-//------------------------------------------------
-// 画像上の座標を、ウィンドウ内のローカル座標に変換して返す
-//------------------------------------------------
-function GetObjectLocalLocation(obj) {
-    // ウィンドウ内での obj の累積相対座標を計算
-    // (location は直近の親からの距離なので、親を遡って全部足す)
-    var totalRelX = 0;
-    var totalRelY = 0;
-    var target = obj;
-
-     while (target && target.type !== 'window') {
-        totalRelX += target.location.x;
-        totalRelY += target.location.y;
-         
-        // 親要素が Panel や Group の場合、その内側の余白(margins)も考慮する
-        if (target.parent && (target.parent.type === 'panel' || target.parent.type === 'group')) {
-            // margins.left / top が設定されている場合は加算
-            if (target.parent.margins) {
-                totalRelX += target.parent.margins.left;
-                totalRelY += target.parent.margins.top;
-            }
-        }
-        target = target.parent;
-    }
-
-    return {
-        x:  totalRelX,
-        y:  totalRelY + 10 // 10pxのオフセットを追加
-    };
-}
-
-
-//---------------------------------------------------------------------
-// マウスイベントのスクリーン座標を、obj（キャンバス）内のローカル座標に変換して返す
-//---------------------------------------------------------------------
-function GetMouseLocalLocation(event, obj) {
-    var absLocation = GetObjectLocalLocation(obj);
-
-    // マウスの絶対座標から「ウィンドウ位置 + キャンバス相対位置」を引く
-    var localX = Math.floor(event.screenX - absLocation.x);
-    var localY = Math.floor(event.screenY - absLocation.y);
-
-    return {
-        x:  localX,
-        y:  localY
-    };
-}
-
 
 // ---------------------------------------------------------------------------------
 
