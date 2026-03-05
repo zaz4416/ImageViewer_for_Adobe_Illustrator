@@ -16,6 +16,7 @@ $.evalFile(GetScriptDir() + "ZazLib/ClassInheritance.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/Language.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
+$.evalFile(GetScriptDir() + "CpopMenu.jsx");
 $.evalFile(GetScriptDir() + "CViewer.jsx");
 
 
@@ -451,14 +452,6 @@ CImageViewDLg.prototype.GetImageFile = function() {
         return null;
     }
 
-    /*
-    if (imageFile && isTransparentPNG(imageFile)) {
-        alert("このPNGは透明度を持っています。");
-    } else if (imageFile) {
-        alert("不透明な画像です。");
-    }
-    */
-
     return imageFile;
 }
 
@@ -499,27 +492,6 @@ CImageViewDLg.prototype.CreatePaletteObjects = function() {
     alert(this.m_ColorHistory.length + " 個の色でパレットを生成しました。");
 };
 
-/**
- * PNGファイルが透明度(Alpha)を持っているか判定する
- * @param {File} file - 判定対象のファイルオブジェクト
- * @returns {Boolean} 透明度をサポートしていればtrue
- */
-function isTransparentPNG(file) {
-    if (!file || !file.exists) return false;
-    if (!file.name.match(/\.png$/i)) return false; // PNG以外は除外
-
-    file.encoding = "BINARY";
-    file.open("r");
-    
-    // PNGのIHDRチャンクにあるカラータイプ(25バイト目)を読み込む
-    file.seek(25);
-    var colorType = file.read(1).charCodeAt(0);
-    file.close();
-
-    // 4: Gray+Alpha, 6: RGB+Alpha なら透明度あり
-    // 3: Indexed Color も透明パレットを持つ可能性があるため含めるのが一般的
-    return (colorType >= 3);
-}
 
 
 function main()

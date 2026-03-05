@@ -11,8 +11,6 @@
 // ディスプレイのスケーリング倍率を保存する
 var _UIScale = 1.25; // デフォルト値（例: 1.25）。後で getUIScale 関数で上書きされる予定 
 
-
-#include "CpopMenu.jsx"   // 共通のポップアップメニュークラス
 #include "CLoupePalette.jsx"    // 拡大鏡のクラス
 
 
@@ -229,8 +227,6 @@ function checkAndRunPS(imgFile, x, y, callback) {
 //-----------------------------------
 // クラス CViewer
 //-----------------------------------
-
-// コンストラクタ
 function CViewer(pObj, pDialog, pPanelView, imageFile) {
     var self         = this;
     self.Result      = null;
