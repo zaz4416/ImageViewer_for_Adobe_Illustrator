@@ -94,11 +94,11 @@ function GetScriptDir() {
 
 // ---------------------------------------------------------------------------------
 
+
 //-----------------------------------
 // クラス CViewerOpration
 //-----------------------------------
 
-// コンストラクタ
 function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) { 
     CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ呼び出し
     
@@ -110,27 +110,30 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
     // 移動イベントを監視
     pDialog.onMove = function() {
 
-        // 現在のウィンドウ位置を取得
-        var currentWinPos = this.location;
+        var currentPos = this.location;
 
-        // 初回移動時の起点座標を保存
-        if (self.m_CanvasPos === null) {
-            self.m_CanvasPos = { x: currentWinPos.x, y: currentWinPos.y };
+        // 1. ルーペがない場合は、位置を保存するだけで終了
+        if (self.m_Loupe === null) {
+            self.m_CanvasPos = currentPos;
             return;
-         }
-
-        // 移動量（Delta）を計算
-        var deltaX = currentWinPos.x - self.m_CanvasPos.x;
-        var deltaY = currentWinPos.y - self.m_CanvasPos.y;
-
-        // ルーペの位置を更新（メイン窓が動いた分だけルーペも動かす）
-        if (self.m_Loupe !== null) {
-            var loupePos = self.m_Loupe.GetLocation();
-            self.m_Loupe.Locate(loupePos.x + deltaX, loupePos.y + deltaY);
         }
 
-        // 次回計算のために現在の位置を保存
-        self.m_CanvasPos = { x: currentWinPos.x, y: currentWinPos.y };
+        // 2. 初回（起点）座標がない場合も保存して終了
+        if (self.m_CanvasPos === null) {
+            self.m_CanvasPos = currentPos;
+            return;
+        }
+
+        // 3. 移動量（Delta）を計算
+        var deltaX = currentPos.x - self.m_CanvasPos.x;
+        var deltaY = currentPos.y - self.m_CanvasPos.y;
+
+        // 4. ルーペを移動（プロパティアクセスを最小化）
+        var lp = self.m_Loupe.GetLocation();
+        self.m_Loupe.Locate(lp.x + deltaX, lp.y + deltaY);
+
+        // 5. 座標を更新
+        self.m_CanvasPos = currentPos;
     }
 
 
