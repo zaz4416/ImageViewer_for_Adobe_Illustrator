@@ -100,6 +100,60 @@ function GetScriptDir() {
 // コンストラクタ
 function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) { 
     CViewer.call( this, pObj, pDialog, pPanelView, imageFile );      // コンストラクタ呼び出し
+    
+    var self = this;
+    self.m_CanvasPos = null;
+    
+    // 移動イベントを監視
+    pDialog.onMove = function() {
+
+        // 現在のウィンドウ位置を取得
+        var currentWinPos = this.location;
+
+        // 初回移動時の起点座標を保存
+        if (self.m_CanvasPos === null) {
+            self.m_CanvasPos = { x: currentWinPos.x, y: currentWinPos.y };
+            return;
+         }
+
+        // 移動量（Delta）を計算
+        var deltaX = currentWinPos.x - self.m_CanvasPos.x;
+        var deltaY = currentWinPos.y - self.m_CanvasPos.y;
+
+        // ルーペの位置を更新（メイン窓が動いた分だけルーペも動かす）
+        if (self.m_Loupe !== null) {
+            var loupePos = self.m_Loupe.GetLocation();
+            self.m_Loupe.Locate(loupePos.x + deltaX, loupePos.y + deltaY);
+        }
+
+        // 次回計算のために現在の位置を保存
+        self.m_CanvasPos = { x: currentWinPos.x, y: currentWinPos.y };
+    }
+
+
+    // カスタム・カンバスのmousedown
+    self.m_Canvas.addEventListener("mousedown", function(event) {
+        var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
+
+        // event.button は左クリックで 0、中央で 1、右で 2 を返す
+        //alert(Sz);
+
+        switch (event.button) {
+            case 0:
+                // 左クリック
+                self.OnPickUp(event, pObj, imageFile); // メニュー表示へ
+                break;
+            case 1:
+                // 中央（ホイール）クリック
+                break;
+            case 2:
+                // 右クリック
+                self.showContextMenu(event, pObj); // メニュー表示へ
+                break;
+            default:
+                break;
+         }
+    });
 }
 
 ClassInheritance(CViewerOpration, CViewer);   // クラス継承
