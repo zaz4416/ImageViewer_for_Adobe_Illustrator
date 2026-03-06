@@ -18,8 +18,7 @@ $.evalFile(GetScriptDir() + "ZazLib/GlobalArray.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/PaletteWindow.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/CpopMenu.jsx");
 $.evalFile(GetScriptDir() + "ZazLib/CViewer.jsx");
-
-#include "CLoupePalette.jsx"    // 拡大鏡のクラス
+$.evalFile(GetScriptDir() + "ZazLib/CLoupePalette.jsx");    // 拡大鏡のクラス
 
 
 // 言語ごとの辞書を定義
