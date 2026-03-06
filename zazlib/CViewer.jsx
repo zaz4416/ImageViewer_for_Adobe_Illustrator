@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/03/05
+// Ver.1.0 : 2026/03/06
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -292,31 +292,11 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
                 g.rectPath(0, 0, canv.size.width, canv.size.height);
                 g.fillPath(whiteBrush);
 
-                var blackPen = g.newPen(g.PenType.SOLID_COLOR, [0.0, 0.0, 0.0, 1.0], 1); 
-                var myFont = ScriptUI.newFont("Arial", "BOLD", 20); 
-
                 if ( self.uiImage ) {
-
                     self.m_UIScale = getUIScale(self.m_Canvas); // UIのスケーリングを取得しておく（例: 1.25）
 
                     // 画像をビュアーのサイズにリサイズして描画
                     g.drawImage(self.uiImage, 0, 0, canv.size.width, canv.size.height);
-
-                    var zxzX =  self.mousePos.x; // マウスのローカルX座標
-                    var zxzY =  self.mousePos.y; // マウスのローカルY座標
-                    var pView   = pObj.m_Viewer;
-                    var pCanvas = pView.m_Canvas;
-                    var imageWidth   = pView.m_Image.width;      // 画像の幅
-                    var imageHeight  = pView.m_Image.height;     // 画像の高さ
-                    var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
-                    var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ  
-                        zxzX =  Math.floor( imageWidth  * ( self.mousePos.x / canvasWidth  ) );
-                        zxzY =  Math.floor( imageHeight * ( self.mousePos.y / canvasHeight ) );
-                    
-                    // マウス位置に応じて拡大鏡を更新
-                    if ( self.m_Loupe  !== null ) {
-                        self.m_Loupe.update(self.uiImage, imageWidth, imageHeight, pView.m_UIScale, zxzX, zxzY);
-                    }
                 }
             }
 

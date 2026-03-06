@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/03/05
+// Ver.1.0 : 2026/03/06
 
 #target illustrator
 #targetengine "main"
@@ -103,6 +103,7 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
     
     var self = this;
     self.m_CanvasPos = null;
+
     
     // 移動イベントを監視
     pDialog.onMove = function() {
@@ -133,11 +134,6 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
 
     // カスタム・カンバスのmousedown
     self.m_Canvas.addEventListener("mousedown", function(event) {
-        var Sz = "Status: Mouse Down on Button (Button: " + event.button + ")";
-
-        // event.button は左クリックで 0、中央で 1、右で 2 を返す
-        //alert(Sz);
-
         switch (event.button) {
             case 0:
                 // 左クリック
@@ -154,6 +150,30 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
                 break;
          }
     });
+
+
+    var baseDraw = self.m_Canvas.onDraw;
+    self.m_Canvas.onDraw = function() {
+        baseDraw.call(this);
+
+        if ( self.uiImage ) {
+            var zxzX =  self.mousePos.x; // マウスのローカルX座標
+            var zxzY =  self.mousePos.y; // マウスのローカルY座標
+            var pView   = pObj.m_Viewer;
+            var pCanvas = pView.m_Canvas;
+            var imageWidth   = pView.m_Image.width;      // 画像の幅
+            var imageHeight  = pView.m_Image.height;     // 画像の高さ
+            var canvasWidth  = pCanvas.size.width  * pView.m_UIScale;     // キャンバスの幅
+            var canvasHeight = pCanvas.size.height * pView.m_UIScale;    // キャンバスの高さ  
+                        zxzX =  Math.floor( imageWidth  * ( self.mousePos.x / canvasWidth  ) );
+                        zxzY =  Math.floor( imageHeight * ( self.mousePos.y / canvasHeight ) );
+                    
+            // マウス位置に応じて拡大鏡を更新
+            if ( self.m_Loupe  !== null ) {
+                self.m_Loupe.update(self.uiImage, imageWidth, imageHeight, pView.m_UIScale, zxzX, zxzY);
+            }
+        }
+    }
 }
 
 ClassInheritance(CViewerOpration, CViewer);   // クラス継承
