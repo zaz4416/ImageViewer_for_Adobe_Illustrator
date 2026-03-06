@@ -103,6 +103,7 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
     
     var self = this;
     self.m_CanvasPos = null;
+    self.m_Loupe = null;
 
     
     // 移動イベントを監視
@@ -241,6 +242,53 @@ CViewerOpration.prototype.OnPickUp = function(event, pObj, imageFile) {
         alert( e.message );
     }
 }
+
+
+CViewerOpration.prototype.ShowLoupe= function() {
+    try {
+        var self = this;
+        if ( self.m_Loupe === null ) {
+            self.m_Loupe = new CLoupePalette();
+        }
+        self.m_Loupe.show();
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+CViewerOpration.prototype.HideLoupe= function() {
+    try {
+        var self = this;
+        if ( self.m_Loupe !== null ) {
+            self.m_Loupe.hide();
+        }
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+
+CViewerOpration.prototype.close = function() {
+    try {
+        var self = this;
+        if ( self.m_Loupe !== null ) {
+            self.m_Loupe.close();
+        }
+
+    } catch(e) {
+        alert( e.message );
+    }
+}
+
+
+CViewerOpration.prototype.IsOpenLoupe= function(pObj) {
+    var self = this;
+    if ( self.m_Loupe !== null ) {
+        return self.m_Loupe.IsOpne();
+    }
+    return false;
+}
+
 
 
 

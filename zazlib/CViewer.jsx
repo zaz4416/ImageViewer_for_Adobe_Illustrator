@@ -234,7 +234,6 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
     self.m_Image     = null;            // 画像のオリジナルサイズ {width, height, ratio} を保持するオブジェクト
     self.mousePos    = { x: 0, y: 0 };  // マウスのローカル座標を保存するオブジェクト
     self.m_UIScale   = _UIScale;        // ディスプレイのスケーリング倍率を保存する
-    self.m_Loupe = null;
 
     try{
         self.m_Image = getImageSize(imageFile);
@@ -326,18 +325,6 @@ function CViewer(pObj, pDialog, pPanelView, imageFile) {
 }
 
 
-CViewer.prototype.close = function() {
-    try {
-        var self = this;
-        if ( self.m_Loupe !== null ) {
-            self.m_Loupe.close();
-        }
-
-    } catch(e) {
-        alert( e.message );
-    }
-};
-
 /**
  * キャンバスへのオブジェクトを返す
  */
@@ -348,37 +335,6 @@ CViewer.prototype.GetCanvas = function() {
     } catch(e) {
         alert( e.message );
     }
-}
-
-CViewer.prototype.ShowLoupe= function() {
-    try {
-        var self = this;
-        if ( self.m_Loupe === null ) {
-            self.m_Loupe = new CLoupePalette();
-        }
-        self.m_Loupe.show();
-    } catch(e) {
-        alert( e.message );
-    }
-}
-
-CViewer.prototype.HideLoupe= function() {
-    try {
-        var self = this;
-        if ( self.m_Loupe !== null ) {
-            self.m_Loupe.hide();
-        }
-    } catch(e) {
-        alert( e.message );
-    }
-}
-
-CViewer.prototype.IsOpenLoupe= function(pObj) {
-    var self = this;
-    if ( self.m_Loupe !== null ) {
-        return self.m_Loupe.IsOpne();
-    }
-    return false;
 }
 
 
