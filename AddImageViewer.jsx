@@ -5,7 +5,7 @@
 */
 /* global $ */
 
-// Ver.1.0 : 2026/03/06
+// Ver.1.0 : 2026/03/07
 
 #target illustrator
 #targetengine "main"
@@ -105,6 +105,7 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
     var self = this;
     self.m_CanvasPos = null;
     self.m_Loupe = null;
+    self.m_CanvasObj = self.GetCanvas();
 
     
     // 移動イベントを監視
@@ -138,7 +139,7 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
 
 
     // カスタム・カンバスのmousedown
-    self.m_Canvas.addEventListener("mousedown", function(event) {
+    self.m_CanvasObj.addEventListener("mousedown", function(event) {
         switch (event.button) {
             case 0:
                 // 左クリック
@@ -157,8 +158,8 @@ function CViewerOpration( pObj, pDialog, pPanelView, imageFile ) {
     });
 
 
-    var baseDraw = self.m_Canvas.onDraw;
-    self.m_Canvas.onDraw = function() {
+    var baseDraw = self.m_CanvasObj.onDraw;
+    self.m_CanvasObj.onDraw = function() {
         baseDraw.call(this);
 
         if ( self.uiImage ) {
