@@ -5,7 +5,7 @@
 */
 
 
-// Ver.1.0 : 2026/03/06
+// Ver.1.0 : 2026/03/11
 
 
 // ディスプレイのスケーリング倍率を保存する
@@ -81,9 +81,10 @@ function getImageSize(imageFile) {
         // 強制的に計算を実行
         win.layout.layout(true);
 
-        if (myImage.bounds.width > 0) {
-            result.width  = myImage.bounds.width;
-            result.height = myImage.bounds.height;
+        // ★ 重要：表示上の bounds ではなく、内部データの size を見る
+        if (myImage.image && myImage.image.size) {
+            result.width  = myImage.image.size.width;
+            result.height = myImage.image.size.height;
             result.ratio  = result.width / result.height;
         }
         
