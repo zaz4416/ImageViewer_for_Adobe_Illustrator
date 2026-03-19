@@ -1,5 +1,5 @@
 ﻿
-// Ver.1.0 : 2026/03/01
+// Ver.1.0 : 2026/03/19
 
 
 // --- グローバル関数 -----------------------------------------------------------------
@@ -12,6 +12,29 @@ function appVersion() {
     res.push(Number(tmp[i])) ;
   }
   return res ;
+}
+
+// main関数を起動するためのスターター関数
+function runMain(main)
+{
+    $.global.main = main;
+
+    // グローバルAPIとして公開
+    $.global.API = {
+        main: function () {
+            main();
+        }
+    };
+
+    // ブリッジトークでmain関数を起動
+    var bt = new BridgeTalk();
+    bt.target = BridgeTalk.appSpecifier;
+
+    bt.body =
+        '#targetengine "main";\n' +
+        '$.global.API.main();';
+
+    bt.send();
 }
 
 // ---------------------------------------------------------------------------------
