@@ -22,7 +22,11 @@ function runMain(main)
 
     bt.body =
         '#targetengine "main";\n' +
+<<<<<<< Updated upstream
         '$.global.API = {};\n' +   // ← 強制リセット、重要
+=======
+        '$.global.API = {};\n' +   // ← 強制リセット
+>>>>>>> Stashed changes
         '$.global.API.main = ' + main + ';\n' +
         '$.global.API.main();';
 
