@@ -17,21 +17,13 @@ function appVersion() {
 // main関数を起動するためのスターター関数
 function runMain(main)
 {
-    $.global.main = main;
-
-    // グローバルAPIとして公開
-    $.global.API = {
-        main: function () {
-            main();
-        }
-    };
-
-    // ブリッジトークでmain関数を起動
     var bt = new BridgeTalk();
     bt.target = BridgeTalk.appSpecifier;
 
     bt.body =
         '#targetengine "main";\n' +
+        '$.global.API = {};\n' +   // ← 強制リセット、重要
+        '$.global.API.main = ' + main + ';\n' +
         '$.global.API.main();';
 
     bt.send();
