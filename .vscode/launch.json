@@ -6,12 +6,6 @@
             "request": "launch",
             "name": "Illustrator",
             "targetSpecifier": "illustrator"
-        },
-        {
-            "type": "extendscript-debug",
-            "request": "launch",
-            "name": "Photoshop",
-            "targetSpecifier": "photoshop"
         }
     ]
 }
