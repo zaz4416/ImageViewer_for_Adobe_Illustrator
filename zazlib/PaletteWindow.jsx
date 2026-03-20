@@ -20,9 +20,7 @@ function runMain(mainFilePath, mainFunc)
     // --- mainエンジン以外 ---
     if ($.engineName !== "main")
     {
-        var msg = "BridgeTalkでmainエンジンに切り替え（現在: " + $.engineName + "）";
-        alert(msg);
-        $.writeln(msg);
+        $.writeln( "BridgeTalkでmainエンジンに切り替えて、main関数を実行（現在: " + $.engineName + "）" );
 
         var bt = new BridgeTalk();
         bt.target = BridgeTalk.appSpecifier;
@@ -30,7 +28,16 @@ function runMain(mainFilePath, mainFunc)
         bt.body =
             '#target illustrator;\n' +
             '#targetengine "main";\n' +
-            '$.evalFile("' + mainFilePath + '");';
+
+            // ★ フラグトグル処理
+            'if (!$.global.__RUNMAIN_LOADED__) {\n' +
+            '    $.writeln("初回実行：evalFile実行");\n' +
+            '    $.global.__RUNMAIN_LOADED__ = true;\n' +
+            '    $.evalFile("' + mainFilePath + '");\n' +
+            '} else {\n' +
+            '    $.writeln("2回目：フラグ削除して終了");\n' +
+            '    delete $.global.__RUNMAIN_LOADED__;\n' +
+            '}';
 
         bt.onError = function(err) {
             alert("BridgeTalkエラー: " + err.body);
@@ -41,7 +48,7 @@ function runMain(mainFilePath, mainFunc)
     }
 
     // --- mainエンジン ---
-    $.writeln("mainエンジンで直接実行");
+    $.writeln("main関数を、mainエンジンで直接実行");
 
     // ★ ここがポイント
     if (typeof mainFunc === "function") {

@@ -657,9 +657,8 @@ function main()
     }
 }
 
-{
-    var mainPath = File($.fileName).fsName;
-    runMain(mainPath, main);
-}
+// エンジン別にmain関数を実行
+runMain( File($.fileName).fsName, main );
+
 
 
