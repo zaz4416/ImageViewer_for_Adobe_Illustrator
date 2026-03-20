@@ -1,5 +1,5 @@
 ﻿
-// Ver.1.0 : 2026/03/19
+// Ver.1.0 : 2026/03/20
 
 
 // --- グローバル関数 -----------------------------------------------------------------
@@ -17,16 +17,25 @@ function appVersion() {
 // main関数を起動するためのスターター関数
 function runMain(main)
 {
-    var bt = new BridgeTalk();
-    bt.target = BridgeTalk.appSpecifier;
+    // エンジンがmainでないときは、ブリッジトーク経由で実行
+    if ( $.engineName !== "main" )
+    {
+        $.writeln( "ブリッジトーク経由で、main関数を実行" );
+        var bt = new BridgeTalk();
+        bt.target = BridgeTalk.appSpecifier;
 
-    bt.body =
-        '#targetengine "main";\n' +
-        '$.global.API = {};\n' +   // ← 強制リセット、重要
-        '$.global.API.main = ' + main + ';\n' +
-        '$.global.API.main();';
+        bt.body =
+            '#targetengine "main";\n' +
+            '$.global.API = {};\n' +   // ← 強制リセット、重要
+            '$.global.API.main = ' + main + ';\n' +
+            '$.global.API.main();';
 
-    bt.send();
+        bt.send();
+    } else {
+        // エンジンがmainのときは、そのまま実行
+        $.writeln( "ダイレクトに、main関数を実行" );
+        main();
+    }
 }
 
 // ---------------------------------------------------------------------------------
