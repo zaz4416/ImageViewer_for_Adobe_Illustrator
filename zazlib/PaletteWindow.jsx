@@ -20,13 +20,16 @@ function runMain(main)
     // エンジンがmainでないときは、ブリッジトーク経由で実行
     if ( $.engineName !== "main" )
     {
-        $.writeln( "ブリッジトーク経由で、main関数を実行" );
+        var msg01 = "ブリッジトーク経由で、main関数をスタートします(開始前のエンジンは、" + $.engineName + ")";
+        alert( msg01 );
+        $.writeln( msg01 );
         var bt = new BridgeTalk();
         bt.target = BridgeTalk.appSpecifier;
 
         bt.body =
         bt.body =
             '#targetengine "main";\n' +
+            'alert("Engine in Brigde Talk = " + $.engineName);\n' + // エンジン名を表示
             '$.global.API = {};\n' +   // ← 強制リセット、重要
             '$.global.API.main = ' + main.toString() + ';\n' +
             'var __r = "";\n' +
@@ -39,7 +42,7 @@ function runMain(main)
 
         // ★ 完了時
         bt.onResult = function(res) {
-            alert("BridgeTalk完了: " + res.body);
+            //alert("BridgeTalk完了: " + res.body);
         };
 
         // ★ エラー時
@@ -50,7 +53,10 @@ function runMain(main)
         bt.send();
     } else {
         // エンジンがmainのときは、そのまま実行
-        $.writeln( "ダイレクトに、main関数を実行" );
+        // イラストレータで、ファイル→スクリプトの順番にスクリプトを実行すると、ここに来る。
+        var msg02 = "ダイレクトに、main関数を実行";
+        alert( msg02 );
+        $.writeln( msg02 );
         main();
     }
 }
