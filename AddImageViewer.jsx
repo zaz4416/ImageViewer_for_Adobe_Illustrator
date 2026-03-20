@@ -657,4 +657,9 @@ function main()
     }
 }
 
-runMain( main );
+{
+    var mainPath = File($.fileName).fsName;
+    runMain(mainPath, main);
+}
+
+
