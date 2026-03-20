@@ -25,10 +25,27 @@ function runMain(main)
         bt.target = BridgeTalk.appSpecifier;
 
         bt.body =
+        bt.body =
             '#targetengine "main";\n' +
             '$.global.API = {};\n' +   // ← 強制リセット、重要
-            '$.global.API.main = ' + main + ';\n' +
-            '$.global.API.main();';
+            '$.global.API.main = ' + main.toString() + ';\n' +
+            'var __r = "";\n' +
+            'try {\n' +
+            '    __r = $.global.API.main();\n' +
+            '} catch(e) {\n' +
+            '    __r = "ERROR:" + e.message;\n' +
+            '}\n' +
+            '__r;'; // ★ 結果を返す
+
+        // ★ 完了時
+        bt.onResult = function(res) {
+            alert("BridgeTalk完了: " + res.body);
+        };
+
+        // ★ エラー時
+        bt.onError = function(err) {
+            alert("BridgeTalkエラー: " + err.body);
+        };
 
         bt.send();
     } else {
