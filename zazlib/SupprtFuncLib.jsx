@@ -1,38 +1,37 @@
 ﻿
-// Ver.1.0 : 2026/03/01
+// Ver.1.0 : 2026/03/22
 
-// https://ai-scripting.docsforadobe.dev/jsobjref/Document.html
-// http://www.openspc2.org/reibun/Illustrator/ref/index.html
-// http://www.openspc2.org/book/IllustratorCS/
-// https://qiita.com/comsk/items/06391cbf2eb25da46771
-// https://bankuru01.com/color-with-illustrators-script/ // 色
 
-// https://qiita.com/mori_goq/items/3d219dbe9d6740a77d97
-// https://haraguai-is-bad.hatenablog.com/entry/2019/06/07/062902
-// https://www.m2design.co.jp/m2lab/2017/12/13/ktips-05-script/
-// https://sttk3.com/blog/tips/illustrator/select-faster-by-script.html
+// https://qiita.com/comsk/items/e033fbb0d0c1579fd6f9	// 【Illustrator】メニューコマンド以外のコマンドをjsで実行できる用にアクションに登録
+// https://qiita.com/comsk/items/06391cbf2eb25da46771	// 【Illustrator】メニューコマンドリスト
+// https://judicious-night-bca.notion.site/app-executeMenuCommand-43b5a4b7a99d4ba2befd1798ba357b1a	// app.executeMenuCommand
+// https://judicious-night-bca.notion.site/app-selectTool-3ed867bcb69340ad9e1308c41f298ff3 // app.selectTool, ツールを切り替えるメソッドです。Illustrator 2020(v24)から追加されました。
+
+// https://ai-scripting.docsforadobe.dev/jsobjref/Document.html	// Adobe Illustrator Scripting Guide
+// http://www.openspc2.org/reibun/Illustrator/ref/index.html	// イラストレーター JavaScript リファレンス
+// http://www.openspc2.org/book/IllustratorCS/	// 【Illustrator CS自動化作戦】
+// https://bankuru01.com/color-with-illustrators-script/ // illustratorのスクリプト機能で［色］を操るサンプルコード
+// https://qiita.com/mori_goq/items/3d219dbe9d6740a77d97	// Adobe Illustrator用スクリプトの書き方
+// https://haraguai-is-bad.hatenablog.com/entry/2019/06/07/062902	// 034.【ID】塗り／線の色が共通のオブジェクトを一括選択
+// https://www.m2design.co.jp/m2lab/2017/12/13/ktips-05-script/	// Kの小技-05 Illustrator スクリプト 条件式を入力して任意の位置にオブジェクトを複製 – 前編
 // https://sttk3.com/blog/tips/illustrator/crop-stroke.html // Illustratorの線をクローズパスで切り抜きたい！]
-// https://2-hats.hateblo.jp/entry/2014/09/11/035246
-// https://sttk3.com/blog/tips/illustrator/add-apperance-via-script.html
-// https://qiita.com/onebitious/items/589b50f34a5828617140
-
+// https://2-hats.hateblo.jp/entry/2014/09/11/035246	// 【解決】Illustratorスクリプトで選択をもっと速くしたい！
+// https://sttk3.com/blog/tips/illustrator/add-apperance-via-script.html	// 【遊び】スクリプトで塗りアピアランスを追加したい！
+// https://qiita.com/onebitious/items/589b50f34a5828617140	// Illustratorで塗り色、線の色をランダムな色で着色するツールを作ってみた。
 // https://qiita.com/esflat/items/4acd3a60e48f44b44a37  // オブジェクトの種別や構造を取得する
-// https://qiita.com/comsk/items/e033fbb0d0c1579fd6f9 // 【Illustrator】メニューコマンド以外のコマンドをjsで実行できる用にアクションに登録
-// https://qiita.com/comsk/items/06391cbf2eb25da46771 .【Illustrator】メニューコマンドリスト
 // http://data.openspc2.org/reibun/Illustrator/ref/index.html // Illustrator JavaScript Reference イラストレーター JavaScript リファレンス
 // https://bankuru01.com/text-with-illustrators-text-with-illustrators/ // illustratorのスクリプト機能で［テキスト］を操るサンプルコード
 // https://zenn.dev/penguin4731/articles/6f3289d9ad3b8d // Adobe Illustratorのスクリプトを作る方法( ダイアログ関連 )
-// https://judicious-night-bca.notion.site/app-selectTool-3ed867bcb69340ad9e1308c41f298ff3 // ツールを切り替えるメソッドです。Illustrator 2020(v24)から追加されました。
 // https://sttk3.com/blog/tips/illustrator/scripting-reference.html .// いろいろ書いてある
 // https://www.ddc.co.jp/dtp/archives/20160222/150530.html// バージョン情報
 // https://note.com/yucco72/n/nab4f2fcc9117 // 【Illustrator JavaScript】ExtendScriptで直線を描いてガイド化する
 // http://www.openspc2.org/book/IllustratorCC2015/ // ダイアログ関連
 // https://www.samuraiz.co.jp/adobeproduct/jrun/docs/jrun31j/html/Scripting_the_Visual_Tools_Object_Model/vtom7.htm //ActiveDocument オブジェクト
 // https://haraguai-is-bad.hatenablog.com/entry/2019/06/07/062902 //コモノExtendScript100本ノック
-// https://2-hats.hateblo.jp/entry/2014/09/11/035246
+// https://2-hats.hateblo.jp/entry/2014/09/11/035246	// illustratorでUIデザイン：スクリプトことはじめ
 // https://2-hats.hateblo.jp/entry/2015/05/10/070408 //大ログ表示と、その処理
 // https://dtpscriptin.com/statictext/    // 【ExtendScript】GUI : statictext（固定テキスト）
-// https://qiita.com/tetsuoh/items/dcdf75b87613bc85e8ab //
+// https://qiita.com/tetsuoh/items/dcdf75b87613bc85e8ab // typescriptでExtendScriptを書いてみた
 // https://zenn.dev/asataka/scraps/45457c744309d7 //Adobe ExtendScriptをgitで管理したい
 
 
