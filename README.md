@@ -1,5 +1,9 @@
 # ImageViewer_for_Adobe_Illustrator_by_Extend_Script.
 
+ここのページの右側のReleaseをクリックして、
+ImageViewer_for_Adobe_Illustrator-xx.zip をダウンロードしてください。
+
+
 動作環境
 Adobe社のイラストレータで動作します。
 source-full.zip　をダウンロードしてください。
